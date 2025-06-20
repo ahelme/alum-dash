@@ -1,11 +1,10 @@
 import React from 'react'
 import { AlumniDataTable } from '@/components/alumni-data-table'
-import { Dashboard } from '@/components/dashboard'
 import { ImportCSV } from '@/components/import-csv'
 import { AddAlumni } from '@/components/add-alumni'
+import { AutomationDashboard } from '@/components/AutomationDashboard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { GraduationCap, Users, Plus, Upload, BarChart3 } from 'lucide-react'
-import './App.css'
+import { GraduationCap, Users, Plus, Upload, BarChart3, Bot } from 'lucide-react'
 
 function App() {
   return (
@@ -21,7 +20,7 @@ function App() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 AlumDash
               </h1>
-              <p className="text-slate-600">Modern Alumni Achievement Tracking System</p>
+              <p className="text-slate-600">Modern Alumni Achievement Tracking System with AI-Powered Discovery</p>
             </div>
           </div>
         </div>
@@ -30,7 +29,7 @@ function App() {
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5 mb-8">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+              <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
             <TabsTrigger value="alumni" className="flex items-center gap-2">
@@ -52,7 +51,7 @@ function App() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <Dashboard />
+            <AutomationDashboard />
           </TabsContent>
 
           <TabsContent value="alumni" className="space-y-6">
