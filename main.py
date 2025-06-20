@@ -15,8 +15,8 @@ import asyncio
 
 # Database imports
 from database.connection import (
-    get_database, Alumni, Achievement, Project, ImportLog,
-    DegreeProgram, AchievementType, ProjectType, check_database_health,
+    get_database, Alumni, Achievement, Project, ImportLog, DataSource, ProjectStreamingPlatform,
+    DegreeProgram, AchievementType, ProjectType, DataSourceType, check_database_health,
     create_tables  # Add this import
 )
 

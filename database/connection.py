@@ -47,6 +47,11 @@ class ProjectType(enum.Enum):
     DOCUMENTARY = "Documentary"
     ANIMATION = "Animation"
 
+class DataSourceType(enum.Enum):
+    API = "API"
+    RSS = "RSS"
+    WEB_SCRAPING = "Web Scraping"
+
 # SQLAlchemy Models
 class Alumni(Base):
     __tablename__ = "alumni"
@@ -54,7 +59,7 @@ class Alumni(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     graduation_year = Column(Integer, nullable=False)
-    degree_program = Column(String(50), nullable=False)  # Store as string, validate in Python
+    degree_program = Column(SQLEnum(DegreeProgram, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     email = Column(String(255))
     linkedin_url = Column(Text)
     imdb_url = Column(Text)
@@ -126,6 +131,28 @@ class ImportLog(Base):
     imported_by = Column(String(100))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True))
+
+class DataSource(Base):
+    __tablename__ = "data_sources"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    type = Column(SQLEnum(DataSourceType), nullable=False)
+    url = Column(Text, nullable=False)
+    active = Column(Boolean, default=True)
+    rate_limit = Column(Integer, default=60)
+    api_key_encrypted = Column(Text)
+    last_checked = Column(DateTime(timezone=True))
+    last_error = Column(Text)
+    success_rate = Column(DECIMAL(3, 2), default=1.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class ProjectStreamingPlatform(Base):
+    __tablename__ = "project_streaming_platforms"
+    
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    platform_name = Column(String(100), nullable=False, primary_key=True)
 
 # Dependency to get database session
 async def get_database() -> AsyncGenerator[AsyncSession, None]:
