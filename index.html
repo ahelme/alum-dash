@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VCA Alumni Achievement Tracking System</title>
+    <title>AlumDash - Alumni Achievement Tracking System</title>
     <style>
         * {
             margin: 0;
@@ -157,37 +157,31 @@
             background-color: #0052a3;
         }
         
-        .achievement-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
+        button.btn.secondary {
+            background-color: #6c757d;
         }
         
-        .achievement-badge.award {
-            background-color: #ffd700;
-            color: #333;
+        button.btn.secondary:hover {
+            background-color: #5a6268;
         }
         
-        .achievement-badge.festival {
-            background-color: #ff6b6b;
-            color: white;
+        .file-upload-area {
+            border: 2px dashed #0066cc;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: background-color 0.3s;
+            cursor: pointer;
         }
         
-        .achievement-badge.production {
-            background-color: #4ecdc4;
-            color: white;
+        .file-upload-area:hover {
+            background-color: #e9ecef;
         }
         
-        .achievement-badge.review {
-            background-color: #95e1d3;
-            color: #333;
-        }
-        
-        .achievement-badge.industry {
-            background-color: #a8e6cf;
-            color: #333;
+        .file-upload-area.dragover {
+            background-color: #e3f2fd;
+            border-color: #1976d2;
         }
         
         .loading {
@@ -202,22 +196,6 @@
         
         .section.active {
             display: block;
-        }
-        
-        .data-source-status {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-        }
-        
-        .data-source-status.active {
-            background-color: #4caf50;
-        }
-        
-        .data-source-status.inactive {
-            background-color: #f44336;
         }
         
         .alert {
@@ -238,54 +216,61 @@
             border: 1px solid #f5c6cb;
         }
         
-        .confidence-score {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        
-        .confidence-high {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .confidence-medium {
+        .alert.warning {
             background-color: #fff3cd;
             color: #856404;
+            border: 1px solid #ffeaa7;
         }
         
-        .confidence-low {
-            background-color: #f8d7da;
-            color: #721c24;
+        .import-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
         }
         
-        .verified {
-            color: #28a745;
+        .import-stat {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .import-stat-value {
+            font-size: 1.5rem;
             font-weight: bold;
+            color: #0066cc;
         }
         
-        .unverified {
-            color: #dc3545;
+        .import-stat-label {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.25rem;
         }
         
-        ul {
-            list-style: none;
-            padding: 0;
+        .csv-format-info {
+            background-color: #e3f2fd;
+            border: 1px solid #1976d2;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
         
-        ul li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
+        .csv-format-info h4 {
+            color: #1976d2;
+            margin-bottom: 0.5rem;
         }
         
-        ul li:last-child {
-            border-bottom: none;
+        .csv-format-info ul {
+            margin-left: 1rem;
+        }
+        
+        .csv-format-info li {
+            margin-bottom: 0.25rem;
         }
         
         @media (max-width: 768px) {
-            .dashboard-grid {
+            .dashboard-grid, .import-stats {
                 grid-template-columns: 1fr;
             }
             
@@ -310,15 +295,14 @@
 <body>
     <header class="header">
         <div class="container">
-            <h1>VCA Alumni Achievement Tracking System</h1>
-            <p>University of Melbourne - Faculty of Fine Arts and Music</p>
+            <h1>AlumDash - Alumni Achievement Tracking System</h1>
+            <p>Modern PostgreSQL-powered alumni achievement tracking with CSV import capabilities</p>
             <nav class="nav">
                 <button onclick="showSection('dashboard')" class="active">Dashboard</button>
                 <button onclick="showSection('alumni')">Alumni</button>
-                <button onclick="showSection('achievements')">Achievements</button>
-                <button onclick="showSection('projects')">Projects</button>
-                <button onclick="showSection('data-sources')">Data Sources</button>
                 <button onclick="showSection('add-alumni')">Add Alumni</button>
+                <button onclick="showSection('import-csv')">Import CSV</button>
+                <button onclick="showSection('import-history')">Import History</button>
             </nav>
         </div>
     </header>
@@ -348,30 +332,6 @@
                 </div>
             </section>
             
-            <!-- Achievements Section -->
-            <section id="achievements" class="section">
-                <h2>All Achievements</h2>
-                <div id="achievementsTable">
-                    <div class="loading">Loading achievements...</div>
-                </div>
-            </section>
-            
-            <!-- Projects Section -->
-            <section id="projects" class="section">
-                <h2>Film & TV Projects</h2>
-                <div id="projectsTable">
-                    <div class="loading">Loading projects...</div>
-                </div>
-            </section>
-            
-            <!-- Data Sources Section -->
-            <section id="data-sources" class="section">
-                <h2>Data Sources</h2>
-                <div id="dataSourcesTable">
-                    <div class="loading">Loading data sources...</div>
-                </div>
-            </section>
-            
             <!-- Add Alumni Section -->
             <section id="add-alumni" class="section">
                 <h2>Add New Alumni</h2>
@@ -385,7 +345,7 @@
                         
                         <div class="form-group">
                             <label for="graduation_year">Graduation Year *</label>
-                            <input type="number" id="graduation_year" name="graduation_year" min="1970" max="2025" required>
+                            <input type="number" id="graduation_year" name="graduation_year" min="1970" max="2030" required>
                         </div>
                         
                         <div class="form-group">
@@ -424,11 +384,68 @@
                     </form>
                 </div>
             </section>
+            
+            <!-- CSV Import Section -->
+            <section id="import-csv" class="section">
+                <h2>Import Alumni from CSV</h2>
+                
+                <div class="csv-format-info">
+                    <h4>📋 CSV Format Requirements</h4>
+                    <p><strong>Required columns:</strong></p>
+                    <ul>
+                        <li><strong>name</strong> - Full name (max 100 characters)</li>
+                        <li><strong>graduation_year</strong> - Year between 1970-2030</li>
+                        <li><strong>degree_program</strong> - One of: Film Production, Screenwriting, Animation, Documentary, Television</li>
+                    </ul>
+                    <p><strong>Optional columns:</strong></p>
+                    <ul>
+                        <li><strong>email</strong> - Valid email address</li>
+                        <li><strong>linkedin_url</strong> - LinkedIn profile URL (must start with http:// or https://)</li>
+                        <li><strong>imdb_url</strong> - IMDb profile URL (must start with http:// or https://)</li>
+                        <li><strong>website</strong> - Personal website URL (must start with http:// or https://)</li>
+                    </ul>
+                    <button type="button" class="btn secondary" onclick="downloadTemplate()">📥 Download Template</button>
+                </div>
+                
+                <div class="card">
+                    <div id="importMessage"></div>
+                    
+                    <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('csvFile').click()">
+                        <div>
+                            <h3>📁 Click to select CSV file or drag and drop</h3>
+                            <p>Maximum file size: 10MB</p>
+                            <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+                    </div>
+                    
+                    <div id="fileInfo" style="display: none; margin-top: 1rem;">
+                        <h4>Selected File:</h4>
+                        <p id="fileName"></p>
+                        <button type="button" class="btn" onclick="uploadCSV()">🚀 Import CSV Data</button>
+                        <button type="button" class="btn secondary" onclick="clearFile()">❌ Clear</button>
+                    </div>
+                    
+                    <div id="importResults" style="display: none; margin-top: 1rem;">
+                        <h4>Import Results:</h4>
+                        <div id="importStatsContainer"></div>
+                        <div id="importErrors"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Import History Section -->
+            <section id="import-history" class="section">
+                <h2>Import History</h2>
+                <div id="importHistoryTable">
+                    <div class="loading">Loading import history...</div>
+                </div>
+            </section>
         </div>
     </main>
     
     <script>
         const API_BASE = 'http://localhost:8000/api';
+        let selectedFile = null;
         
         // Navigation
         function showSection(sectionId) {
@@ -450,14 +467,8 @@
                 case 'alumni':
                     loadAlumni();
                     break;
-                case 'achievements':
-                    loadAchievements();
-                    break;
-                case 'projects':
-                    loadProjects();
-                    break;
-                case 'data-sources':
-                    loadDataSources();
+                case 'import-history':
+                    loadImportHistory();
                     break;
             }
         }
@@ -478,6 +489,10 @@
                         <div class="stat-value">${stats.total_achievements}</div>
                     </div>
                     <div class="card">
+                        <h3>Total Projects</h3>
+                        <div class="stat-value">${stats.total_projects}</div>
+                    </div>
+                    <div class="card">
                         <h3>Top Achievers</h3>
                         <ul>
                             ${stats.top_achievers.map(a => `
@@ -489,7 +504,7 @@
                 
                 document.getElementById('dashboardStats').innerHTML = dashboardHtml;
                 
-                const recentHtml = `
+                const recentHtml = stats.recent_achievements.length > 0 ? `
                     <table>
                         <thead>
                             <tr>
@@ -505,16 +520,17 @@
                                     <td>${a.title}</td>
                                     <td>${a.alumni_name}</td>
                                     <td>${new Date(a.date).toLocaleDateString()}</td>
-                                    <td><span class="achievement-badge ${getAchievementClass(a.type)}">${a.type}</span></td>
+                                    <td><span class="achievement-badge">${a.type}</span></td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
-                `;
+                ` : '<p>No achievements recorded yet.</p>';
                 
                 document.getElementById('recentAchievements').innerHTML = recentHtml;
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                document.getElementById('dashboardStats').innerHTML = '<div class="alert error">Error loading dashboard data</div>';
             }
         }
         
@@ -523,6 +539,11 @@
             try {
                 const response = await fetch(`${API_BASE}/alumni`);
                 const alumni = await response.json();
+                
+                if (alumni.length === 0) {
+                    document.getElementById('alumniTable').innerHTML = '<div class="alert warning">No alumni records found. Try importing some data using the CSV import feature!</div>';
+                    return;
+                }
                 
                 const html = `
                     <table>
@@ -543,8 +564,8 @@
                                     <td>${a.degree_program}</td>
                                     <td>${a.email || 'N/A'}</td>
                                     <td>
-                                        ${a.linkedin_url ? `<a href="${a.linkedin_url}" target="_blank">LinkedIn</a>` : ''}
-                                        ${a.imdb_url ? `<a href="${a.imdb_url}" target="_blank">IMDb</a>` : ''}
+                                        ${a.linkedin_url ? `<a href="${a.linkedin_url}" target="_blank">LinkedIn</a> ` : ''}
+                                        ${a.imdb_url ? `<a href="${a.imdb_url}" target="_blank">IMDb</a> ` : ''}
                                         ${a.website ? `<a href="${a.website}" target="_blank">Website</a>` : ''}
                                     </td>
                                 </tr>
@@ -556,154 +577,219 @@
                 document.getElementById('alumniTable').innerHTML = html;
             } catch (error) {
                 console.error('Error loading alumni:', error);
+                document.getElementById('alumniTable').innerHTML = '<div class="alert error">Error loading alumni data</div>';
             }
         }
         
-        // Load Achievements
-        async function loadAchievements() {
+        // Load Import History
+        async function loadImportHistory() {
             try {
-                const response = await fetch(`${API_BASE}/achievements`);
-                const achievements = await response.json();
+                const response = await fetch(`${API_BASE}/import-history`);
+                const history = await response.json();
                 
-                const alumniResponse = await fetch(`${API_BASE}/alumni`);
-                const alumni = await alumniResponse.json();
-                
-                const alumniMap = {};
-                alumni.forEach(a => alumniMap[a.id] = a.name);
+                if (history.length === 0) {
+                    document.getElementById('importHistoryTable').innerHTML = '<div class="alert warning">No import history found.</div>';
+                    return;
+                }
                 
                 const html = `
                     <table>
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Alumni</th>
-                                <th>Type</th>
                                 <th>Date</th>
-                                <th>Confidence</th>
-                                <th>Verified</th>
-                                <th>Source</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${achievements.map(a => `
-                                <tr>
-                                    <td>${a.title}</td>
-                                    <td>${alumniMap[a.alumni_id]}</td>
-                                    <td><span class="achievement-badge ${getAchievementClass(a.type)}">${a.type}</span></td>
-                                    <td>${new Date(a.date).toLocaleDateString()}</td>
-                                    <td><span class="confidence-score ${getConfidenceClass(a.confidence_score)}">${(a.confidence_score * 100).toFixed(0)}%</span></td>
-                                    <td class="${a.verified ? 'verified' : 'unverified'}">${a.verified ? '✓' : '✗'}</td>
-                                    <td>${a.source}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                
-                document.getElementById('achievementsTable').innerHTML = html;
-            } catch (error) {
-                console.error('Error loading achievements:', error);
-            }
-        }
-        
-        // Load Projects
-        async function loadProjects() {
-            try {
-                const response = await fetch(`${API_BASE}/projects`);
-                const projects = await response.json();
-                
-                const html = `
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Type</th>
-                                <th>Release Date</th>
-                                <th>Runtime</th>
-                                <th>Streaming</th>
-                                <th>Links</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${projects.map(p => `
-                                <tr>
-                                    <td>${p.title}</td>
-                                    <td>${p.type}</td>
-                                    <td>${p.release_date ? new Date(p.release_date).toLocaleDateString() : 'TBA'}</td>
-                                    <td>${p.runtime_minutes ? p.runtime_minutes + ' min' : 'N/A'}</td>
-                                    <td>${p.streaming_platforms.join(', ') || 'N/A'}</td>
-                                    <td>
-                                        ${p.imdb_id ? `<a href="https://www.imdb.com/title/${p.imdb_id}" target="_blank">IMDb</a>` : ''}
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                
-                document.getElementById('projectsTable').innerHTML = html;
-            } catch (error) {
-                console.error('Error loading projects:', error);
-            }
-        }
-        
-        // Load Data Sources
-        async function loadDataSources() {
-            try {
-                const response = await fetch(`${API_BASE}/data-sources`);
-                const sources = await response.json();
-                
-                const html = `
-                    <table>
-                        <thead>
-                            <tr>
+                                <th>Filename</th>
                                 <th>Status</th>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Rate Limit</th>
-                                <th>Last Checked</th>
-                                <th>URL</th>
+                                <th>Total Records</th>
+                                <th>Successful</th>
+                                <th>Failed</th>
+                                <th>Imported By</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${sources.map(s => `
+                            ${history.map(log => `
                                 <tr>
-                                    <td><span class="data-source-status ${s.active ? 'active' : 'inactive'}"></span></td>
-                                    <td>${s.name}</td>
-                                    <td>${s.type}</td>
-                                    <td>${s.rate_limit} req/hour</td>
-                                    <td>${s.last_checked ? new Date(s.last_checked).toLocaleString() : 'Never'}</td>
-                                    <td><a href="${s.url}" target="_blank">${s.url}</a></td>
+                                    <td>${new Date(log.created_at).toLocaleString()}</td>
+                                    <td>${log.filename}</td>
+                                    <td><span class="status-${log.status}">${log.status}</span></td>
+                                    <td>${log.total_records || 'N/A'}</td>
+                                    <td>${log.successful_records || 'N/A'}</td>
+                                    <td>${log.failed_records || 'N/A'}</td>
+                                    <td>${log.imported_by || 'N/A'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
                 `;
                 
-                document.getElementById('dataSourcesTable').innerHTML = html;
+                document.getElementById('importHistoryTable').innerHTML = html;
             } catch (error) {
-                console.error('Error loading data sources:', error);
+                console.error('Error loading import history:', error);
+                document.getElementById('importHistoryTable').innerHTML = '<div class="alert error">Error loading import history</div>';
             }
         }
         
-        // Helper function for achievement badges
-        function getAchievementClass(type) {
-            if (type.includes('Award')) return 'award';
-            if (type.includes('Festival')) return 'festival';
-            if (type.includes('Production')) return 'production';
-            if (type.includes('Review')) return 'review';
-            if (type.includes('Industry')) return 'industry';
-            return '';
+        // CSV Import Functions
+        async function downloadTemplate() {
+            try {
+                const response = await fetch(`${API_BASE}/alumni/csv-template`);
+                const blob = await response.blob();
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'alumni_import_template.csv';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Error downloading template:', error);
+                showImportMessage('Error downloading template', 'error');
+            }
         }
         
-        // Helper function for confidence scores
-        function getConfidenceClass(score) {
-            if (score >= 0.9) return 'confidence-high';
-            if (score >= 0.7) return 'confidence-medium';
-            return 'confidence-low';
+        // File upload handling
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('fileName').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                document.getElementById('fileInfo').style.display = 'block';
+                document.getElementById('importResults').style.display = 'none';
+                clearImportMessage();
+            }
         }
         
-        // Handle form submission
+        function clearFile() {
+            selectedFile = null;
+            document.getElementById('csvFile').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('importResults').style.display = 'none';
+            clearImportMessage();
+        }
+        
+        // Drag and drop functionality
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+        
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                    selectedFile = file;
+                    document.getElementById('fileName').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                    document.getElementById('fileInfo').style.display = 'block';
+                    document.getElementById('importResults').style.display = 'none';
+                    clearImportMessage();
+                } else {
+                    showImportMessage('Please select a CSV file', 'error');
+                }
+            }
+        });
+        
+        async function uploadCSV() {
+            if (!selectedFile) {
+                showImportMessage('Please select a file first', 'error');
+                return;
+            }
+            
+            showImportMessage('Importing data...', 'warning');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                
+                const response = await fetch(`${API_BASE}/alumni/import-csv`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showImportMessage(result.message, 'success');
+                    displayImportResults(result);
+                    
+                    // Refresh alumni list if we're on that tab
+                    if (document.getElementById('alumni').classList.contains('active')) {
+                        loadAlumni();
+                    }
+                } else {
+                    showImportMessage(result.message, 'error');
+                    if (result.errors && result.errors.length > 0) {
+                        displayImportErrors(result.errors);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error uploading CSV:', error);
+                showImportMessage('Error uploading file. Please try again.', 'error');
+            }
+        }
+        
+        function displayImportResults(result) {
+            if (!result.statistics) return;
+            
+            const stats = result.statistics;
+            const html = `
+                <div class="import-stats">
+                    <div class="import-stat">
+                        <div class="import-stat-value">${stats.total_records}</div>
+                        <div class="import-stat-label">Total Records</div>
+                    </div>
+                    <div class="import-stat">
+                        <div class="import-stat-value">${stats.successful_imports}</div>
+                        <div class="import-stat-label">Successful</div>
+                    </div>
+                    <div class="import-stat">
+                        <div class="import-stat-value">${stats.failed_imports}</div>
+                        <div class="import-stat-label">Failed</div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('importStatsContainer').innerHTML = html;
+            document.getElementById('importResults').style.display = 'block';
+            
+            if (result.errors && result.errors.length > 0) {
+                displayImportErrors(result.errors);
+            }
+        }
+        
+        function displayImportErrors(errors) {
+            const errorHtml = `
+                <div class="alert error">
+                    <h4>Import Errors:</h4>
+                    <ul>
+                        ${errors.map(error => `<li>${error}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            document.getElementById('importErrors').innerHTML = errorHtml;
+        }
+        
+        function showImportMessage(message, type) {
+            const messageDiv = document.getElementById('importMessage');
+            messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
+        }
+        
+        function clearImportMessage() {
+            document.getElementById('importMessage').innerHTML = '';
+        }
+        
+        // Handle form submission for individual alumni
         document.getElementById('addAlumniForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -722,21 +808,17 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        id: 0, // Will be assigned by server
                         name: data.name,
                         graduation_year: parseInt(data.graduation_year),
                         degree_program: data.degree_program,
                         email: data.email || null,
                         linkedin_url: data.linkedin_url,
                         imdb_url: data.imdb_url,
-                        website: data.website,
-                        privacy_settings: {
-                            public_profile: true,
-                            show_email: false,
-                            allow_notifications: true
-                        }
+                        website: data.website
                     })
                 });
+                
+                const result = await response.json();
                 
                 if (response.ok) {
                     document.getElementById('formMessage').innerHTML = 
@@ -746,9 +828,8 @@
                         showSection('alumni');
                     }, 2000);
                 } else {
-                    const error = await response.json();
                     document.getElementById('formMessage').innerHTML = 
-                        `<div class="alert error">Error: ${error.detail || 'Failed to add alumni'}</div>`;
+                        `<div class="alert error">Error: ${result.detail || 'Failed to add alumni'}</div>`;
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -762,3 +843,4 @@
     </script>
 </body>
 </html>
+                

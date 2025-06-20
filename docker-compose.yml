@@ -4,18 +4,22 @@ services:
     build: 
       context: .  # Build from current directory using Dockerfile
       dockerfile: Dockerfile
-    container_name: vca-alumni-tracker
+    container_name: alumdash-app
     ports:
       - "8000:8000"  # Map host port 8000 to container port 8000
     environment:
       # Environment variables for the application
       - PYTHONPATH=/app
       - ENV=development
+      - DATABASE_URL=postgresql+asyncpg://alumdash_user:secure_alumdash_2025@database:5432/alumdash
+    depends_on:
+      database:
+        condition: service_healthy
     volumes:
       # Mount current directory to /app for development (hot reload)
       - .:/app
       # Create a named volume for any persistent data
-      - alumni_data:/app/data
+      - alumdash_data:/app/data
     restart: unless-stopped  # Restart container unless explicitly stopped
     healthcheck:
       # Monitor application health
@@ -25,34 +29,39 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - alumni-network
+      - alumdash-network
 
-  # Optional: PostgreSQL database for production use
-  # Uncomment and configure when ready to move from mock data
-  # database:
-  #   image: postgres:15-alpine
-  #   container_name: vca-alumni-db
-  #   environment:
-  #     POSTGRES_DB: alumni_tracker
-  #     POSTGRES_USER: alumni_user
-  #     POSTGRES_PASSWORD: secure_password_here
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #     - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-  #   ports:
-  #     - "5432:5432"
-  #   restart: unless-stopped
-  #   networks:
-  #     - alumni-network
+  # PostgreSQL database
+  database:
+    image: postgres:15-alpine
+    container_name: alumdash-db
+    environment:
+      POSTGRES_DB: alumdash
+      POSTGRES_USER: alumdash_user
+      POSTGRES_PASSWORD: secure_alumdash_2025
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alumdash_user -d alumdash"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - alumdash-network
 
 # Named volumes for persistent data
 volumes:
-  alumni_data:
+  alumdash_data:
     driver: local
-  # postgres_data:  # Uncomment when using PostgreSQL
-  #   driver: local
+  postgres_data:
+    driver: local
 
 # Custom network for service communication
 networks:
-  alumni-network:
+  alumdash-network:
     driver: bridge
