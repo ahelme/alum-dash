@@ -180,6 +180,21 @@ INSERT INTO alumni_projects (alumni_id, project_id, role, verified_status) VALUE
 (4, 4, 'Screenwriter', TRUE)
 ON CONFLICT DO NOTHING;
 
+-- Automation state table for tracking automation system status
+CREATE TABLE IF NOT EXISTS automation_state (
+    id SERIAL PRIMARY KEY,
+    status VARCHAR(20) NOT NULL DEFAULT 'stopped', -- 'running', 'stopped', 'error'
+    last_run_start TIMESTAMP WITH TIME ZONE,
+    last_run_end TIMESTAMP WITH TIME ZONE,
+    next_scheduled_run TIMESTAMP WITH TIME ZONE,
+    current_progress JSONB DEFAULT '{}',
+    error_message TEXT,
+    run_count INTEGER DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT valid_status CHECK (status IN ('running', 'stopped', 'error'))
+);
+
 INSERT INTO data_sources (name, type, url, active, rate_limit) VALUES
 ('TMDb API', 'API', 'https://api.themoviedb.org/3', TRUE, 40),
 ('OMDb API', 'API', 'http://www.omdbapi.com', TRUE, 1000),

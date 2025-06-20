@@ -137,7 +137,7 @@ class DataSource(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True)
-    type = Column(SQLEnum(DataSourceType), nullable=False)
+    type = Column(SQLEnum(DataSourceType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     url = Column(Text, nullable=False)
     active = Column(Boolean, default=True)
     rate_limit = Column(Integer, default=60)
@@ -153,6 +153,19 @@ class ProjectStreamingPlatform(Base):
     
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
     platform_name = Column(String(100), nullable=False, primary_key=True)
+
+class AutomationState(Base):
+    __tablename__ = "automation_state"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    status = Column(String(20), nullable=False, default="stopped")  # running, stopped, error
+    last_run_start = Column(DateTime(timezone=True))
+    last_run_end = Column(DateTime(timezone=True))
+    next_scheduled_run = Column(DateTime(timezone=True))
+    current_progress = Column(JSONB, default={})
+    error_message = Column(Text)
+    run_count = Column(Integer, default=0)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 # Dependency to get database session
 async def get_database() -> AsyncGenerator[AsyncSession, None]:
