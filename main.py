@@ -174,9 +174,8 @@ async def create_alumni(alumni_data: AlumniCreate, session: AsyncSession = Depen
     """Create new alumni record"""
     try:
         # Validate degree program
-        try:
-            degree_program = DegreeProgram(alumni_data.degree_program)
-        except ValueError:
+        valid_programs = ["Film Production", "Screenwriting", "Animation", "Documentary", "Television"]
+        if alumni_data.degree_program not in valid_programs:
             raise HTTPException(status_code=400, detail="Invalid degree program")
         
         # Check for duplicate

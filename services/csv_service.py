@@ -4,7 +4,7 @@ from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert
-from database.connection import Alumni, ImportLog, DegreeProgram
+from database.connection import Alumni, ImportLog, DegreeProgram, AsyncSessionLocal
 import logging
 import json
 from io import StringIO
@@ -156,46 +156,50 @@ class CSVImportService:
             
             for index, row in df.iterrows():
                 try:
-                    # Prepare alumni data
-                    alumni_data = {
-                        'name': str(row['name']).strip(),
-                        'graduation_year': int(row['graduation_year']),
-                        'degree_program': str(row['degree_program']).strip(),  # Keep as string, don't convert to enum
-                        'email': str(row.get('email', '')).strip() if row.get('email', '') else None,
-                        'linkedin_url': str(row.get('linkedin_url', '')).strip() if row.get('linkedin_url', '') else None,
-                        'imdb_url': str(row.get('imdb_url', '')).strip() if row.get('imdb_url', '') else None,
-                        'website': str(row.get('website', '')).strip() if row.get('website', '') else None,
-                    }
-                    
-                    # Remove empty string values
-                    alumni_data = {k: v for k, v in alumni_data.items() if v is not None and v != ''}
-                    
-                    # Check if alumni already exists (by name and graduation year)
-                    existing_query = select(Alumni).where(
-                        Alumni.name == alumni_data['name'],
-                        Alumni.graduation_year == alumni_data['graduation_year']
-                    )
-                    existing_alumni = await session.execute(existing_query)
-                    existing_alumni = existing_alumni.scalar_one_or_none()
-                    
-                    if existing_alumni:
-                        import_errors.append(f"Row {index + 2}: Alumni '{alumni_data['name']}' (graduation year {alumni_data['graduation_year']}) already exists")
-                        failed_imports += 1
-                        continue
-                    
-                    # Create new alumni record
-                    new_alumni = Alumni(
-                        name=alumni_data['name'],
-                        graduation_year=alumni_data['graduation_year'],
-                        degree_program=alumni_data['degree_program'],  # SQLAlchemy will handle the enum conversion
-                        email=alumni_data.get('email'),
-                        linkedin_url=alumni_data.get('linkedin_url'),
-                        imdb_url=alumni_data.get('imdb_url'),
-                        website=alumni_data.get('website')
-                    )
-                    session.add(new_alumni)
-                    successful_imports += 1
-                    
+                    # Use a fresh session for each row to avoid rollback issues
+                    async with AsyncSessionLocal() as row_session:
+                        # Prepare alumni data
+                        alumni_data = {
+                            'name': str(row['name']).strip(),
+                            'graduation_year': int(row['graduation_year']),
+                            'degree_program': str(row['degree_program']).strip(),  # Keep as string
+                            'email': str(row.get('email', '')).strip() if row.get('email', '') else None,
+                            'linkedin_url': str(row.get('linkedin_url', '')).strip() if row.get('linkedin_url', '') else None,
+                            'imdb_url': str(row.get('imdb_url', '')).strip() if row.get('imdb_url', '') else None,
+                            'website': str(row.get('website', '')).strip() if row.get('website', '') else None,
+                        }
+                        
+                        # Remove empty string values
+                        alumni_data = {k: v for k, v in alumni_data.items() if v is not None and v != ''}
+                        
+                        # Check if alumni already exists (by name and graduation year)
+                        existing_query = select(Alumni).where(
+                            Alumni.name == alumni_data['name'],
+                            Alumni.graduation_year == alumni_data['graduation_year']
+                        )
+                        existing_alumni = await row_session.execute(existing_query)
+                        existing_alumni = existing_alumni.scalar_one_or_none()
+                        
+                        if existing_alumni:
+                            import_errors.append(f"Row {index + 2}: Alumni '{alumni_data['name']}' (graduation year {alumni_data['graduation_year']}) already exists")
+                            failed_imports += 1
+                            continue
+                        
+                        # Create new alumni record
+                        new_alumni = Alumni(
+                            name=alumni_data['name'],
+                            graduation_year=alumni_data['graduation_year'],
+                            degree_program=alumni_data['degree_program'],  # Now just a string
+                            email=alumni_data.get('email'),
+                            linkedin_url=alumni_data.get('linkedin_url'),
+                            imdb_url=alumni_data.get('imdb_url'),
+                            website=alumni_data.get('website')
+                        )
+                        
+                        row_session.add(new_alumni)
+                        await row_session.commit()
+                        successful_imports += 1
+                        
                 except Exception as e:
                     import_errors.append(f"Row {index + 2}: {str(e)}")
                     failed_imports += 1

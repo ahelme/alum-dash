@@ -54,7 +54,7 @@ class Alumni(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     graduation_year = Column(Integer, nullable=False)
-    degree_program = Column(SQLEnum(DegreeProgram), nullable=False)
+    degree_program = Column(String(50), nullable=False)  # Store as string, validate in Python
     email = Column(String(255))
     linkedin_url = Column(Text)
     imdb_url = Column(Text)
