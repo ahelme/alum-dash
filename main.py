@@ -502,7 +502,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files for React frontend assets
+# Mount static files for React frontend assets  
 app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
 
 # ===== EXISTING ENDPOINTS =====
@@ -1232,6 +1232,10 @@ async def serve_react_app(full_path: str):
     Catch-all route to serve React app for client-side routing.
     This handles all routes not matched by API endpoints above.
     """
+    # Don't catch API routes
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
     try:
         with open("static/index.html", "r") as f:
             return f.read()
