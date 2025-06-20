@@ -162,7 +162,7 @@ class CSVImportService:
                         alumni_data = {
                             'name': str(row['name']).strip(),
                             'graduation_year': int(row['graduation_year']),
-                            'degree_program': str(row['degree_program']).strip(),  # Keep as string
+                            'degree_program': str(row['degree_program']).strip(),
                             'email': str(row.get('email', '')).strip() if row.get('email', '') else None,
                             'linkedin_url': str(row.get('linkedin_url', '')).strip() if row.get('linkedin_url', '') else None,
                             'imdb_url': str(row.get('imdb_url', '')).strip() if row.get('imdb_url', '') else None,
@@ -185,11 +185,21 @@ class CSVImportService:
                             failed_imports += 1
                             continue
                         
+                        # Convert degree_program string to enum
+                        degree_program_enum = None
+                        for dp in DegreeProgram:
+                            if dp.value == alumni_data['degree_program']:
+                                degree_program_enum = dp
+                                break
+                        
+                        if degree_program_enum is None:
+                            raise ValueError(f"Invalid degree program: {alumni_data['degree_program']}")
+                        
                         # Create new alumni record
                         new_alumni = Alumni(
                             name=alumni_data['name'],
                             graduation_year=alumni_data['graduation_year'],
-                            degree_program=alumni_data['degree_program'],  # Now just a string
+                            degree_program=degree_program_enum,
                             email=alumni_data.get('email'),
                             linkedin_url=alumni_data.get('linkedin_url'),
                             imdb_url=alumni_data.get('imdb_url'),

@@ -10,7 +10,10 @@ import {
   Loader2,
   User,
   Mail,
-  Globe
+  Globe,
+  Upload,
+  FileText,
+  Download
 } from 'lucide-react';
 
 interface AlumniFormData {
@@ -49,6 +52,11 @@ export const AddAlumni: React.FC = () => {
   
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<FormMessage | null>(null);
+  
+  // CSV Upload state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvMessage, setCsvMessage] = useState<FormMessage | null>(null);
 
   const handleInputChange = (field: keyof AlumniFormData, value: string) => {
     setFormData(prev => ({
@@ -181,6 +189,86 @@ export const AddAlumni: React.FC = () => {
     setMessage(null);
   };
 
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        setCsvMessage({
+          type: 'error',
+          text: 'Please select a valid CSV file'
+        });
+        return;
+      }
+      setCsvFile(file);
+      setCsvMessage(null);
+    }
+  };
+
+  const handleCsvUpload = async () => {
+    if (!csvFile) {
+      setCsvMessage({
+        type: 'error',
+        text: 'Please select a CSV file first'
+      });
+      return;
+    }
+
+    setCsvUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', csvFile);
+
+      const response = await fetch('/api/alumni/import-csv', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setCsvMessage({
+          type: 'success',
+          text: result.message
+        });
+        setCsvFile(null);
+        // Reset file input
+        const fileInput = document.getElementById('csv-file-input') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      } else {
+        setCsvMessage({
+          type: 'error',
+          text: result.message || 'CSV import failed'
+        });
+      }
+    } catch (error) {
+      console.error('CSV upload error:', error);
+      setCsvMessage({
+        type: 'error',
+        text: 'Error uploading CSV file. Please try again.'
+      });
+    } finally {
+      setCsvUploading(false);
+    }
+  };
+
+  const downloadCsvTemplate = async () => {
+    try {
+      const response = await fetch('/api/alumni/csv-template');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'alumni_template.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading template:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -189,6 +277,101 @@ export const AddAlumni: React.FC = () => {
         <p className="text-muted-foreground">
           Register a new graduate in the alumni tracking system
         </p>
+      </div>
+
+      {/* CSV Import Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Upload className="h-5 w-5" />
+            <span>Bulk Import Alumni</span>
+          </CardTitle>
+          <CardDescription>
+            Upload a CSV file to import multiple alumni records at once
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* CSV Message Display */}
+          {csvMessage && (
+            <div className={`p-4 rounded-lg border mb-4 ${
+              csvMessage.type === 'success' 
+                ? 'bg-green-50 text-green-800 border-green-200' 
+                : 'bg-red-50 text-red-800 border-red-200'
+            }`}>
+              <div className="flex items-center space-x-2">
+                {csvMessage.type === 'success' ? (
+                  <CheckCircle2 className="h-5 w-5" />
+                ) : (
+                  <XCircle className="h-5 w-5" />
+                )}
+                <span>{csvMessage.text}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={downloadCsvTemplate}
+                className="flex items-center space-x-2"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download Template</span>
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Download a sample CSV file with the correct format
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Select CSV File
+                </label>
+                <div className="flex items-center space-x-4">
+                  <Input
+                    id="csv-file-input"
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCsvFileChange}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  />
+                  {csvFile && (
+                    <div className="flex items-center space-x-2 text-sm text-green-600">
+                      <FileText className="h-4 w-4" />
+                      <span>{csvFile.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                onClick={handleCsvUpload}
+                disabled={!csvFile || csvUploading}
+                className="flex items-center space-x-2"
+              >
+                {csvUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                <span>{csvUploading ? 'Uploading...' : 'Upload CSV'}</span>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Individual Form Section */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">Or add individual alumni</span>
+        </div>
       </div>
 
       {/* Message Display */}
