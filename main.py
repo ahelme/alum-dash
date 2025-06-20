@@ -17,7 +17,7 @@ import asyncio
 from database.connection import (
     get_database, Alumni, Achievement, Project, ImportLog, DataSource, ProjectStreamingPlatform, AutomationState,
     DegreeProgram, AchievementType, ProjectType, DataSourceType, check_database_health,
-    create_tables  # Add this import
+    create_tables, AsyncSessionLocal  # Add AsyncSessionLocal import
 )
 
 # Service imports

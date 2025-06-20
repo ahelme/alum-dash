@@ -77,7 +77,7 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
     release_date = Column(Date)
-    type = Column(SQLEnum(ProjectType), nullable=False)
+    type = Column(SQLEnum(ProjectType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     imdb_id = Column(String(20))
     tmdb_id = Column(String(20))
     poster_url = Column(Text)
@@ -93,7 +93,7 @@ class Achievement(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     alumni_id = Column(Integer, ForeignKey("alumni.id"), nullable=False)
-    type = Column(SQLEnum(AchievementType), nullable=False)
+    type = Column(SQLEnum(AchievementType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     title = Column(String(200), nullable=False)
     date = Column(Date, nullable=False)
     description = Column(Text, nullable=False)
