@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import uvicorn
 import os
 import logging
@@ -474,7 +474,7 @@ async def get_automation_status(session: AsyncSession = Depends(get_database)):
             total_sources=10,
             avg_processing_time=12.5,
             status=automation_state["status"],
-            next_scheduled_run=datetime.now() + datetime.timedelta(hours=2)
+            next_scheduled_run=datetime.now() + timedelta(hours=2)
         )
             
     except Exception as e:
@@ -491,8 +491,8 @@ async def get_data_sources():
                 name="TMDb",
                 type="API",
                 active=True,
-                last_run=datetime.now() - datetime.timedelta(hours=2),
-                next_run=datetime.now() + datetime.timedelta(hours=4),
+                last_run=datetime.now() - timedelta(hours=2),
+                next_run=datetime.now() + timedelta(hours=4),
                 success_rate=95.0,
                 items_found_today=12,
                 rate_limit=40,
@@ -502,8 +502,8 @@ async def get_data_sources():
                 name="Variety",
                 type="Web Scraping",
                 active=True,
-                last_run=datetime.now() - datetime.timedelta(hours=1),
-                next_run=datetime.now() + datetime.timedelta(hours=5),
+                last_run=datetime.now() - timedelta(hours=1),
+                next_run=datetime.now() + timedelta(hours=5),
                 success_rate=76.0,
                 items_found_today=4,
                 rate_limit=10,
@@ -530,7 +530,7 @@ async def get_recent_discoveries(limit: int = 50, verified_only: bool = False):
                 achievement_type="Award",
                 source="AACTA",
                 confidence=0.95,
-                timestamp=datetime.now() - datetime.timedelta(minutes=2),
+                timestamp=datetime.now() - timedelta(minutes=2),
                 source_url="https://aacta.org/winners",
                 verified=False
             ),
@@ -541,7 +541,7 @@ async def get_recent_discoveries(limit: int = 50, verified_only: bool = False):
                 achievement_type="Production Credit",
                 source="TMDb",
                 confidence=0.87,
-                timestamp=datetime.now() - datetime.timedelta(minutes=15),
+                timestamp=datetime.now() - timedelta(minutes=15),
                 source_url="https://themoviedb.org",
                 verified=False
             ),
