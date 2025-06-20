@@ -6,23 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Activity, 
-  CheckCircle2, 
-  Clock,
-  Database,
   Eye,
   Film,
   Globe,
   Play,
   Pause,
   RefreshCw,
-  Search,
   Star,
   Trophy,
   Users,
   TrendingUp,
-  ExternalLink,
-  Bell,
-  Bot
+  ExternalLink
 } from 'lucide-react';
 
 // Types matching your backend API
@@ -85,17 +79,14 @@ const StatCard: React.FC<{
   title: string;
   value: string | number;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
   trend?: string;
-  color?: "blue" | "green" | "purple" | "orange";
   isLoading?: boolean;
-}> = ({ title, value, description, icon: Icon, trend, color = "blue", isLoading = false }) => {
+}> = ({ title, value, description, trend, isLoading = false }) => {
   if (isLoading) {
     return (
       <Card className="relative overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
-          <div className="w-8 h-8 bg-muted animate-pulse rounded-lg"></div>
         </CardHeader>
         <CardContent>
           <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2"></div>
@@ -105,22 +96,12 @@ const StatCard: React.FC<{
     );
   }
 
-  const colorClasses = {
-    blue: "text-blue-600 bg-blue-50",
-    green: "text-green-600 bg-green-50", 
-    purple: "text-purple-600 bg-purple-50",
-    orange: "text-orange-600 bg-orange-50"
-  };
-
   return (
     <Card className="relative overflow-hidden transition-all hover:shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="h-4 w-4" />
-        </div>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
@@ -366,16 +347,11 @@ export const AutomationDashboard: React.FC = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <Bot className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">🤖 Automation Dashboard</CardTitle>
-                <CardDescription>
-                  Real-time monitoring of automated alumni achievement discovery
-                </CardDescription>
-              </div>
+            <div>
+              <CardTitle className="text-2xl">Automation Dashboard</CardTitle>
+              <CardDescription>
+                Real-time monitoring of automated alumni achievement discovery
+              </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
@@ -399,33 +375,25 @@ export const AutomationDashboard: React.FC = () => {
           title="Discoveries Today"
           value={automationStats?.discoveries_today || 0}
           description="New achievements found"
-          icon={Search}
           trend={automationStats ? `+${automationStats.discoveries_change}%` : undefined}
-          color="blue"
           isLoading={loading}
         />
         <StatCard
           title="High Confidence"
           value={automationStats?.high_confidence || 0}
           description="Verified discoveries"
-          icon={CheckCircle2}
-          color="green"
           isLoading={loading}
         />
         <StatCard
           title="Active Sources"
           value={`${automationStats?.active_sources || 0}/${automationStats?.total_sources || 0}`}
           description="Data sources online"
-          icon={Database}
-          color="purple"
           isLoading={loading}
         />
         <StatCard
           title="Processing Time"
           value={`${automationStats?.avg_processing_time || 0}m`}
           description="Average cycle time"
-          icon={Clock}
-          color="orange"
           isLoading={loading}
         />
       </div>
@@ -491,10 +459,7 @@ export const AutomationDashboard: React.FC = () => {
             {/* Recent Discoveries Preview */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5" />
-                  <span>Latest Discoveries</span>
-                </CardTitle>
+                <CardTitle>Latest Discoveries</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {discoveries.slice(0, 3).map((discovery) => (

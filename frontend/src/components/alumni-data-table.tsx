@@ -227,9 +227,7 @@ export function AlumniDataTable() {
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            👥 Alumni Directory
-          </CardTitle>
+          <CardTitle>Alumni Directory</CardTitle>
           <CardDescription>
             Manage and view all alumni records with advanced filtering and sorting capabilities.
           </CardDescription>
