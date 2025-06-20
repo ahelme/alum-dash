@@ -3,14 +3,25 @@
 # Frontend build stage
 FROM node:18-alpine AS frontend-builder
 
+# Install necessary build tools for ARM64 compatibility
+RUN apk add --no-cache python3 make g++ libc6-compat
+
 WORKDIR /frontend
 
 # Copy frontend package files
 COPY frontend/package.json ./
-RUN npm install --omit=dev
 
-# Copy frontend source
+# Clean install without lockfile to resolve ARM64 native dependencies
+RUN rm -f package-lock.json && \
+    npm cache clean --force && \
+    npm install --platform=linux --arch=arm64
+
+# Copy frontend source (excluding node_modules and lockfile)
 COPY frontend/ ./
+RUN rm -rf node_modules package-lock.json
+
+# Reinstall dependencies in container environment (include dev deps for build)
+RUN npm install
 
 # Build frontend
 RUN npm run build

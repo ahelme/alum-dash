@@ -80,6 +80,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Node.js and frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+package-lock.json
+yarn.lock
+
 # Temporary files
 *.tmp
 *.temp

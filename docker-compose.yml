@@ -22,7 +22,11 @@ services:
 
   # FastAPI Backend
   web:
-    build: .
+    build: 
+      context: .
+      platforms:
+        - linux/amd64
+        - linux/arm64
     container_name: alumdash-web
     environment:
       DATABASE_URL: postgresql+asyncpg://alumdash_user:secure_alumdash_2025@db:5432/alumdash

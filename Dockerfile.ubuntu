@@ -1,0 +1,82 @@
+# Multi-stage build for AlumDash - Ubuntu-based for better ARM64 compatibility
+# This alternative Dockerfile uses Ubuntu instead of Alpine to avoid musl compatibility issues
+
+# Frontend build stage using Ubuntu-based Node.js
+FROM node:18-bullseye AS frontend-builder
+
+# Install build essentials for native dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /frontend
+
+# Copy package.json first for better Docker layer caching
+COPY frontend/package.json ./
+
+# Remove any existing lockfile to regenerate for current architecture
+RUN rm -f package-lock.json
+
+# Install dependencies - let npm handle architecture-specific binaries
+RUN npm cache clean --force && \
+    npm install --omit=dev
+
+# Copy source code
+COPY frontend/ ./
+
+# Remove node_modules again to ensure clean rebuild in container
+RUN rm -rf node_modules
+
+# Final install and build
+RUN npm install --omit=dev && \
+    npm run build
+
+# Python backend stage using Ubuntu
+FROM python:3.11-bullseye AS backend
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        curl \
+        && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy Python backend files
+COPY *.py ./
+COPY database/ ./database/
+COPY services/ ./services/
+
+# Copy built frontend from frontend-builder stage
+COPY --from=frontend-builder /frontend/dist ./static/
+
+# Create a non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check to ensure the app is running
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Command to run the application
+CMD ["python", "main.py"]

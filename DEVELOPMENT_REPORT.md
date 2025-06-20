@@ -45,10 +45,15 @@ AlumDash is a modern alumni achievement tracking system built with **FastAPI + R
 
 ## ⚠️ Outstanding Issues
 
-### Issue #8: Docker ARM64 Build Failure 🔴 **HIGH PRIORITY**
+### Issue #8: Docker ARM64 Build Failure ✅ **RESOLVED**
 **Problem:** `Cannot find module @rollup/rollup-linux-arm64-musl` during frontend build in Docker.  
-**Impact:** Blocks containerized deployment on ARM64 systems (Apple Silicon Macs).  
-**Status:** Documented with potential solutions, affects deployment but not development.
+**Solution:** 
+- Updated `Dockerfile` with ARM64 compatibility improvements including build tools installation
+- Implemented clean npm install strategy removing lockfile conflicts in container environment  
+- Created `docker-compose.arm64.yml` for explicit ARM64 platform specification
+- Both ARM64 and AMD64 builds now working successfully
+
+**Result:** Multi-architecture Docker deployment now fully operational on both Apple Silicon and Intel systems.
 
 ### Issue #3: Missing SQLAlchemy Models 🟡 **MEDIUM PRIORITY**
 **Problem:** Database tables exist in SQL but missing Python ORM models.  
