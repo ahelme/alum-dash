@@ -256,8 +256,10 @@ export const AutomationDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isAutomationRunning, setIsAutomationRunning] = useState(false);
 
-  // WebSocket connection for real-time updates
-  const { data: liveData, connectionStatus } = useWebSocket('ws://localhost:8000/ws/automation');
+  // WebSocket connection for real-time updates  
+  // Use window.location.hostname to work in both development and production
+  const wsUrl = `ws://${window.location.hostname}:8000/ws/automation`;
+  const { data: liveData, connectionStatus } = useWebSocket(wsUrl);
 
   // Fetch data
   useEffect(() => {

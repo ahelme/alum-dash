@@ -27,9 +27,17 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://api:8000', // Use Docker service name in container
+        target: 'http://api:8000', // Use Docker service name for container-to-container communication
         changeOrigin: true,
         secure: false,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('Proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Sending Request:', req.method, req.url, ' -> ', proxyReq.path);
+          });
+        }
       }
     }
   }
