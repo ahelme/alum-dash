@@ -988,63 +988,83 @@ async def get_recent_discoveries(limit: int = 50, verified_only: bool = False, s
         raise HTTPException(status_code=500, detail="Error retrieving discoveries")
 
 # Background task function for automation discovery
-async def run_automation_background_task():
-    """Background task that runs the discovery pipeline"""
+def run_automation_background_task():
+    """Background task that runs the discovery pipeline - sync wrapper"""
+    import asyncio
+    
+    async def _async_automation_task():
+        """Actual async automation task"""
+        try:
+            async with AsyncSessionLocal() as session:
+                # Update status to running
+                await update_automation_state(session, status="running", last_run_start=datetime.now())
+                
+                # Broadcast start notification
+                await manager.broadcast({
+                    "type": "automation_started",
+                    "timestamp": datetime.now().isoformat(),
+                    "message": "Discovery pipeline started"
+                })
+                
+                # Run discovery pipeline
+                pipeline = DiscoveryPipeline(session)
+                result = await pipeline.run_discovery()
+                
+                # Update automation state with results
+                await update_automation_state(
+                    session,
+                    status="stopped",
+                    last_run_end=datetime.now(),
+                    next_scheduled_run=datetime.now() + timedelta(hours=6),
+                    run_count=result.get("processed_sources", 0)
+                )
+                
+                # Broadcast completion
+                await manager.broadcast({
+                    "type": "automation_completed",
+                    "timestamp": datetime.now().isoformat(),
+                    "result": {
+                        "discoveries_found": result.get("discoveries_found", 0),
+                        "sources_processed": result.get("processed_sources", 0),
+                        "total_sources": result.get("total_sources", 0)
+                    }
+                })
+                
+                logger.info(f"Automation run completed: {result}")
+                
+        except Exception as e:
+            logger.error(f"Automation background task failed: {e}")
+            
+            # Update status to error
+            try:
+                async with AsyncSessionLocal() as session:
+                    await update_automation_state(
+                        session,
+                        status="error",
+                        last_run_end=datetime.now()
+                    )
+            except Exception as update_error:
+                logger.error(f"Failed to update error state: {update_error}")
+            
+            # Broadcast error
+            try:
+                await manager.broadcast({
+                    "type": "automation_error",
+                    "timestamp": datetime.now().isoformat(),
+                    "error": str(e)
+                })
+            except Exception as broadcast_error:
+                logger.error(f"Failed to broadcast error: {broadcast_error}")
+    
+    # Run the async task in the existing event loop
     try:
-        async with AsyncSessionLocal() as session:
-            # Update status to running
-            await update_automation_state(session, status="running", last_run_start=datetime.now())
-            
-            # Broadcast start notification
-            await manager.broadcast({
-                "type": "automation_started",
-                "timestamp": datetime.now().isoformat(),
-                "message": "Discovery pipeline started"
-            })
-            
-            # Run discovery pipeline
-            pipeline = DiscoveryPipeline(session)
-            result = await pipeline.run_discovery()
-            
-            # Update automation state with results
-            await update_automation_state(
-                session,
-                status="stopped",
-                last_run_end=datetime.now(),
-                next_scheduled_run=datetime.now() + timedelta(hours=6),
-                run_count=result.get("processed_sources", 0)
-            )
-            
-            # Broadcast completion
-            await manager.broadcast({
-                "type": "automation_completed",
-                "timestamp": datetime.now().isoformat(),
-                "result": {
-                    "discoveries_found": result.get("discoveries_found", 0),
-                    "sources_processed": result.get("processed_sources", 0),
-                    "total_sources": result.get("total_sources", 0)
-                }
-            })
-            
-            logger.info(f"Automation run completed: {result}")
-            
+        # Create new event loop for the background task
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_async_automation_task())
+        loop.close()
     except Exception as e:
-        logger.error(f"Automation background task failed: {e}")
-        
-        # Update status to error
-        async with AsyncSessionLocal() as session:
-            await update_automation_state(
-                session,
-                status="error",
-                last_run_end=datetime.now()
-            )
-        
-        # Broadcast error
-        await manager.broadcast({
-            "type": "automation_error",
-            "timestamp": datetime.now().isoformat(),
-            "error": str(e)
-        })
+        logger.error(f"Failed to run automation task: {e}")
 
 @app.post("/api/automation/toggle")
 async def toggle_automation(request: AutomationToggleRequest, background_tasks: BackgroundTasks, session: AsyncSession = Depends(get_database)):
