@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date, timedelta
@@ -15,9 +15,9 @@ import asyncio
 
 # Database imports
 from database.connection import (
-    get_database, Alumni, Achievement, Project, ImportLog,
-    DegreeProgram, AchievementType, ProjectType, check_database_health,
-    create_tables  # Add this import
+    get_database, Alumni, Achievement, Project, ImportLog, DataSource, ProjectStreamingPlatform, AutomationState,
+    DegreeProgram, AchievementType, ProjectType, DataSourceType, check_database_health,
+    create_tables, AsyncSessionLocal  # Add AsyncSessionLocal import
 )
 
 # Service imports
@@ -152,6 +152,329 @@ automation_state = {
     "current_progress": [],
     "last_stats_update": datetime.now()
 }
+
+# ===== DISCOVERY PIPELINE FRAMEWORK =====
+
+class DiscoveryPipeline:
+    """Core discovery pipeline for processing data sources and finding achievements"""
+    
+    def __init__(self, session: AsyncSession):
+        self.session = session
+        self.discoveries = []
+        self.processed_sources = 0
+        self.total_sources = 0
+        
+    async def run_discovery(self) -> Dict[str, Any]:
+        """Main discovery pipeline execution"""
+        try:
+            # Get active data sources
+            sources = await self._get_active_sources()
+            self.total_sources = len(sources)
+            
+            logger.info(f"Starting discovery pipeline with {self.total_sources} active sources")
+            
+            # Process each source
+            for source in sources:
+                try:
+                    discoveries = await self._process_data_source(source)
+                    for discovery in discoveries:
+                        confidence = await self._calculate_confidence_score(discovery, source)
+                        await self._save_discovery(discovery, confidence, source)
+                        self.discoveries.append(discovery)
+                    
+                    self.processed_sources += 1
+                    await self._update_source_stats(source, success=True)
+                    
+                except Exception as e:
+                    logger.error(f"Error processing source {source.name}: {e}")
+                    await self._update_source_stats(source, success=False, error=str(e))
+            
+            result = {
+                "total_sources": self.total_sources,
+                "processed_sources": self.processed_sources,
+                "discoveries_found": len(self.discoveries),
+                "discoveries": self.discoveries
+            }
+            
+            logger.info(f"Discovery pipeline completed: {result}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Discovery pipeline failed: {e}")
+            raise
+    
+    async def _get_active_sources(self) -> List[DataSource]:
+        """Get all active data sources from database"""
+        query = select(DataSource).where(DataSource.active == True).order_by(DataSource.name)
+        result = await self.session.execute(query)
+        return result.scalars().all()
+    
+    async def _process_data_source(self, source: DataSource) -> List[Dict[str, Any]]:
+        """Process individual data source based on type"""
+        discoveries = []
+        
+        try:
+            if source.type == DataSourceType.API:
+                discoveries = await self._process_api_source(source)
+            elif source.type == DataSourceType.RSS:
+                discoveries = await self._process_rss_source(source)
+            elif source.type == DataSourceType.WEB_SCRAPING:
+                discoveries = await self._process_web_scraping_source(source)
+            
+            logger.info(f"Source {source.name} yielded {len(discoveries)} potential discoveries")
+            
+        except Exception as e:
+            logger.error(f"Failed to process {source.name}: {e}")
+            
+        return discoveries
+    
+    async def _process_api_source(self, source: DataSource) -> List[Dict[str, Any]]:
+        """Process API-based data sources (TMDb, OMDb, etc.)"""
+        discoveries = []
+        
+        # Get alumni to search for
+        alumni_query = select(Alumni).limit(10)  # Limit for development
+        alumni_result = await self.session.execute(alumni_query)
+        alumni = alumni_result.scalars().all()
+        
+        for alumnus in alumni:
+            # Simulate API discovery for each alumnus
+            if source.name == "TMDb API":
+                discovery = {
+                    "title": f"Producer Credit - New Film Project",
+                    "alumni_id": alumnus.id,
+                    "alumni_name": alumnus.name,
+                    "achievement_type": "Production Credit",
+                    "description": f"Found {alumnus.name} credited as producer on new film project",
+                    "date": datetime.now().date(),
+                    "source_url": f"https://themoviedb.org/person/{alumnus.id}",
+                    "raw_data": {"source": "TMDb", "confidence_factors": ["name_match", "graduation_year"]}
+                }
+                discoveries.append(discovery)
+                
+            elif source.name == "OMDb API":
+                discovery = {
+                    "title": f"Director - Independent Film",
+                    "alumni_id": alumnus.id,
+                    "alumni_name": alumnus.name,
+                    "achievement_type": "Production Credit", 
+                    "description": f"Found {alumnus.name} listed as director on independent film",
+                    "date": datetime.now().date(),
+                    "source_url": f"https://imdb.com/name/{alumnus.id}",
+                    "raw_data": {"source": "OMDb", "confidence_factors": ["exact_name_match"]}
+                }
+                discoveries.append(discovery)
+        
+        return discoveries[:3]  # Limit discoveries for development
+    
+    async def _process_rss_source(self, source: DataSource) -> List[Dict[str, Any]]:
+        """Process RSS feed sources (news, industry publications)"""
+        discoveries = []
+        
+        # Simulate RSS feed processing
+        if source.name == "Screen Australia":
+            discovery = {
+                "title": "Funding Grant Recipient",
+                "alumni_id": 1,  # Sarah Chen
+                "alumni_name": "Sarah Chen",
+                "achievement_type": "Industry Recognition",
+                "description": "Received Screen Australia development funding for new project",
+                "date": datetime.now().date(),
+                "source_url": "https://screenaustralia.gov.au/funding-recipients",
+                "raw_data": {"source": "Screen Australia", "confidence_factors": ["official_announcement"]}
+            }
+            discoveries.append(discovery)
+        
+        return discoveries
+    
+    async def _process_web_scraping_source(self, source: DataSource) -> List[Dict[str, Any]]:
+        """Process web scraping sources (festival sites, award sites)"""
+        discoveries = []
+        
+        # Simulate web scraping
+        if source.name == "IF Magazine":
+            discovery = {
+                "title": "Featured in Industry Interview",
+                "alumni_id": 2,  # James Mitchell
+                "alumni_name": "James Mitchell", 
+                "achievement_type": "Industry Recognition",
+                "description": "Featured in IF Magazine interview about documentary filmmaking",
+                "date": datetime.now().date(),
+                "source_url": "https://if.com.au/interviews",
+                "raw_data": {"source": "IF Magazine", "confidence_factors": ["byline_match", "bio_details"]}
+            }
+            discoveries.append(discovery)
+            
+        elif source.name == "AACTA Awards":
+            discovery = {
+                "title": "AACTA Award Nomination",
+                "alumni_id": 3,  # Emma Rodriguez
+                "alumni_name": "Emma Rodriguez",
+                "achievement_type": "Award",
+                "description": "Nominated for AACTA Award for Best Animation",
+                "date": datetime.now().date(),
+                "source_url": "https://aacta.org/nominations",
+                "raw_data": {"source": "AACTA", "confidence_factors": ["official_nomination_list"]}
+            }
+            discoveries.append(discovery)
+        
+        return discoveries
+    
+    async def _calculate_confidence_score(self, discovery: Dict[str, Any], source: DataSource) -> float:
+        """Calculate confidence score for a discovery"""
+        base_confidence = 0.5
+        confidence_factors = discovery.get("raw_data", {}).get("confidence_factors", [])
+        
+        # Source reliability bonus
+        source_bonuses = {
+            "TMDb API": 0.2,
+            "OMDb API": 0.25,
+            "Screen Australia": 0.3,  # Official government source
+            "AACTA Awards": 0.35,     # Official awards body
+            "IF Magazine": 0.15       # Industry publication
+        }
+        base_confidence += source_bonuses.get(source.name, 0.1)
+        
+        # Confidence factor bonuses
+        factor_bonuses = {
+            "exact_name_match": 0.2,
+            "name_match": 0.15,
+            "graduation_year": 0.1,
+            "official_announcement": 0.25,
+            "byline_match": 0.15,
+            "bio_details": 0.1,
+            "official_nomination_list": 0.3
+        }
+        
+        for factor in confidence_factors:
+            base_confidence += factor_bonuses.get(factor, 0.05)
+        
+        # Achievement type reliability
+        type_multipliers = {
+            "Award": 1.1,
+            "Industry Recognition": 1.05,
+            "Production Credit": 1.0,
+            "Festival Selection": 1.0,
+            "Review/Reception": 0.9
+        }
+        
+        achievement_type = discovery.get("achievement_type", "Production Credit")
+        base_confidence *= type_multipliers.get(achievement_type, 1.0)
+        
+        # Cap confidence at 1.0
+        return min(base_confidence, 1.0)
+    
+    async def _save_discovery(self, discovery: Dict[str, Any], confidence: float, source: DataSource):
+        """Save discovery as achievement if confidence threshold met"""
+        
+        # Only save discoveries with confidence > 0.7
+        if confidence < 0.7:
+            logger.info(f"Skipping low confidence discovery: {discovery['title']} (confidence: {confidence:.2f})")
+            return
+        
+        # Check for duplicates
+        existing_query = select(Achievement).where(
+            Achievement.alumni_id == discovery["alumni_id"],
+            Achievement.title == discovery["title"],
+            Achievement.source == source.name
+        )
+        existing_result = await self.session.execute(existing_query)
+        if existing_result.scalar_one_or_none():
+            logger.info(f"Duplicate discovery skipped: {discovery['title']}")
+            return
+        
+        # Create new achievement
+        try:
+            achievement = Achievement(
+                alumni_id=discovery["alumni_id"],
+                type=AchievementType(discovery["achievement_type"]),
+                title=discovery["title"],
+                date=discovery["date"],
+                description=discovery["description"],
+                confidence_score=confidence,
+                verified=False,  # All discoveries start unverified
+                source=source.name,
+                source_url=discovery.get("source_url")
+            )
+            
+            self.session.add(achievement)
+            await self.session.commit()
+            
+            logger.info(f"Saved new achievement: {discovery['title']} (confidence: {confidence:.2f})")
+            
+            # Broadcast new discovery via WebSocket
+            await manager.broadcast({
+                "type": "new_discovery",
+                "discovery": {
+                    "id": str(achievement.id),
+                    "title": achievement.title,
+                    "alumni_name": discovery["alumni_name"],
+                    "achievement_type": achievement.type.value,
+                    "source": source.name,
+                    "confidence": float(confidence),
+                    "timestamp": datetime.now().isoformat(),
+                    "source_url": discovery.get("source_url"),
+                    "verified": False
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to save discovery: {e}")
+            await self.session.rollback()
+    
+    async def _update_source_stats(self, source: DataSource, success: bool, error: str = None):
+        """Update data source statistics after processing"""
+        try:
+            source.last_checked = datetime.now()
+            
+            if success:
+                # Improve success rate
+                current_rate = source.success_rate or 0.8
+                source.success_rate = min(current_rate + 0.1, 1.0)
+                source.last_error = None
+            else:
+                # Decrease success rate
+                current_rate = source.success_rate or 0.8
+                source.success_rate = max(current_rate - 0.2, 0.1)
+                source.last_error = error
+            
+            await self.session.commit()
+            
+        except Exception as e:
+            logger.error(f"Failed to update source stats for {source.name}: {e}")
+
+# ===== AUTOMATION STATE MANAGEMENT =====
+async def get_automation_state(session: AsyncSession) -> AutomationState:
+    """Get current automation state from database, create if not exists"""
+    query = select(AutomationState).order_by(AutomationState.id.desc()).limit(1)
+    result = await session.execute(query)
+    state = result.scalar_one_or_none()
+    
+    if not state:
+        # Create initial state
+        state = AutomationState(
+            status="stopped",
+            next_scheduled_run=datetime.now() + timedelta(hours=6),
+            current_progress={},
+            run_count=0
+        )
+        session.add(state)
+        await session.commit()
+        await session.refresh(state)
+    
+    return state
+
+async def update_automation_state(session: AsyncSession, **kwargs) -> AutomationState:
+    """Update automation state in database"""
+    state = await get_automation_state(session)
+    
+    for key, value in kwargs.items():
+        if hasattr(state, key):
+            setattr(state, key, value)
+    
+    await session.commit()
+    await session.refresh(state)
+    return state
 
 # Create FastAPI app
 app = FastAPI(
@@ -448,33 +771,117 @@ async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time automation updates"""
     await manager.connect(websocket)
     try:
-        while True:
-            await asyncio.sleep(5)
+        # Send initial status
+        async with AsyncSessionLocal() as session:
+            db_state = await get_automation_state(session)
             await websocket.send_text(json.dumps({
-                "type": "heartbeat",
+                "type": "status_update",
+                "status": db_state.status,
                 "timestamp": datetime.now().isoformat(),
-                "status": automation_state["status"]
+                "next_scheduled_run": db_state.next_scheduled_run.isoformat() if db_state.next_scheduled_run else None,
+                "run_count": db_state.run_count
             }))
+        
+        while True:
+            await asyncio.sleep(10)  # Reduced frequency for heartbeat
+            
+            # Send periodic status update with real data
+            async with AsyncSessionLocal() as session:
+                db_state = await get_automation_state(session)
+                await websocket.send_text(json.dumps({
+                    "type": "heartbeat",
+                    "timestamp": datetime.now().isoformat(),
+                    "status": db_state.status,
+                    "last_run_start": db_state.last_run_start.isoformat() if db_state.last_run_start else None,
+                    "last_run_end": db_state.last_run_end.isoformat() if db_state.last_run_end else None
+                }))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
 @app.get("/api/automation/status", response_model=AutomationStats)
 async def get_automation_status(session: AsyncSession = Depends(get_database)):
-    """Get current automation status and statistics"""
+    """Get current automation status and statistics from database"""
     try:
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # Mock data for now - replace with real queries when achievements table has automation data
+        # Query real data source statistics
+        sources_query = select(DataSource)
+        sources_result = await session.execute(sources_query)
+        all_sources = sources_result.scalars().all()
+        
+        active_sources = sum(1 for source in all_sources if source.active)
+        total_sources = len(all_sources)
+        
+        # Query achievements for discovery statistics
+        # Discoveries today - achievements created today with automation sources
+        discoveries_today_query = select(func.count(Achievement.id)).where(
+            Achievement.created_at >= today_start,
+            Achievement.source.in_(['TMDb API', 'OMDb API', 'Screen Australia', 'IF Magazine', 'AACTA Awards'])
+        )
+        discoveries_today_result = await session.execute(discoveries_today_query)
+        discoveries_today = discoveries_today_result.scalar() or 0
+        
+        # High confidence discoveries (confidence > 0.8)
+        high_confidence_query = select(func.count(Achievement.id)).where(
+            Achievement.created_at >= today_start,
+            Achievement.confidence_score > 0.8,
+            Achievement.source.in_(['TMDb API', 'OMDb API', 'Screen Australia', 'IF Magazine', 'AACTA Awards'])
+        )
+        high_confidence_result = await session.execute(high_confidence_query)
+        high_confidence = high_confidence_result.scalar() or 0
+        
+        # Total discoveries (all time automation)
+        total_discoveries_query = select(func.count(Achievement.id)).where(
+            Achievement.source.in_(['TMDb API', 'OMDb API', 'Screen Australia', 'IF Magazine', 'AACTA Awards'])
+        )
+        total_discoveries_result = await session.execute(total_discoveries_query)
+        total_discoveries = total_discoveries_result.scalar() or 0
+        
+        # Calculate discoveries change (compare with yesterday)
+        yesterday_start = today_start - timedelta(days=1)
+        yesterday_query = select(func.count(Achievement.id)).where(
+            Achievement.created_at >= yesterday_start,
+            Achievement.created_at < today_start,
+            Achievement.source.in_(['TMDb API', 'OMDb API', 'Screen Australia', 'IF Magazine', 'AACTA Awards'])
+        )
+        yesterday_result = await session.execute(yesterday_query)
+        yesterday_count = yesterday_result.scalar() or 0
+        
+        discoveries_change = 0.0
+        if yesterday_count > 0:
+            discoveries_change = ((discoveries_today - yesterday_count) / yesterday_count) * 100
+        elif discoveries_today > 0:
+            discoveries_change = 100.0  # 100% increase from 0
+        
+        # Calculate average processing time from active sources
+        avg_processing_time = 15.0  # Default estimate
+        active_source_count = sum(1 for source in all_sources if source.active and source.last_checked)
+        if active_source_count > 0:
+            # Estimate based on source types and success rates
+            total_time = 0
+            for source in all_sources:
+                if source.active and source.success_rate:
+                    # Estimate processing time based on source type
+                    base_times = {"API": 5, "RSS": 8, "Web Scraping": 20}
+                    base_time = base_times.get(source.type.value, 10)
+                    # Adjust for success rate (lower success = more time due to retries)
+                    adjusted_time = base_time / max(source.success_rate, 0.1)
+                    total_time += adjusted_time
+            avg_processing_time = total_time / active_source_count if active_source_count > 0 else 15.0
+        
+        # Get automation state from database
+        db_state = await get_automation_state(session)
+        
         return AutomationStats(
-            discoveries_today=24,
-            discoveries_change=18.5,
-            high_confidence=19,
-            total_discoveries=24,
-            active_sources=8,
-            total_sources=10,
-            avg_processing_time=12.5,
-            status=automation_state["status"],
-            next_scheduled_run=datetime.now() + timedelta(hours=2)
+            discoveries_today=discoveries_today,
+            discoveries_change=round(discoveries_change, 1),
+            high_confidence=high_confidence,
+            total_discoveries=total_discoveries,
+            active_sources=active_sources,
+            total_sources=total_sources,
+            avg_processing_time=round(avg_processing_time, 1),
+            status=AutomationStatus(db_state.status),
+            next_scheduled_run=db_state.next_scheduled_run or (datetime.now() + timedelta(hours=6))
         )
             
     except Exception as e:
@@ -482,82 +889,271 @@ async def get_automation_status(session: AsyncSession = Depends(get_database)):
         raise HTTPException(status_code=500, detail="Error retrieving automation status")
 
 @app.get("/api/automation/sources", response_model=List[DataSourceStatus])
-async def get_data_sources():
-    """Get status of all data sources"""
+async def get_data_sources(session: AsyncSession = Depends(get_database)):
+    """Get status of all data sources from database"""
     try:
-        # Mock data for now - replace with real monitoring when implemented
-        sources = [
-            DataSourceStatus(
-                name="TMDb",
-                type="API",
-                active=True,
-                last_run=datetime.now() - timedelta(hours=2),
-                next_run=datetime.now() + timedelta(hours=4),
-                success_rate=95.0,
-                items_found_today=12,
-                rate_limit=40,
-                errors=[]
-            ),
-            DataSourceStatus(
-                name="Variety",
-                type="Web Scraping",
-                active=True,
-                last_run=datetime.now() - timedelta(hours=1),
-                next_run=datetime.now() + timedelta(hours=5),
-                success_rate=76.0,
-                items_found_today=4,
-                rate_limit=10,
-                errors=["Rate limit reached at 14:30"]
-            ),
-        ]
+        # Query real data sources from database
+        query = select(DataSource).order_by(DataSource.name)
+        result = await session.execute(query)
+        data_sources = result.scalars().all()
         
-        return sources
+        # Convert database models to API response models
+        source_statuses = []
+        for source in data_sources:
+            # Calculate next_run based on last_checked and typical intervals
+            next_run = None
+            if source.last_checked:
+                # Default 6-hour interval for automation runs
+                next_run = source.last_checked + timedelta(hours=6)
+            
+            # Parse errors from last_error field
+            errors = []
+            if source.last_error:
+                errors = [source.last_error]
+            
+            # Calculate items found today (mock for now - will be real in Phase 2)
+            items_found_today = 0
+            if source.active and source.success_rate > 0.5:
+                # Estimate based on source type and success rate
+                base_items = {"API": 10, "RSS": 5, "Web Scraping": 3}
+                items_found_today = int(base_items.get(source.type.value, 2) * source.success_rate)
+            
+            source_status = DataSourceStatus(
+                name=source.name,
+                type=source.type.value,
+                active=source.active,
+                last_run=source.last_checked,
+                next_run=next_run,
+                success_rate=float(source.success_rate * 100) if source.success_rate else 0.0,
+                items_found_today=items_found_today,
+                rate_limit=source.rate_limit,
+                errors=errors
+            )
+            source_statuses.append(source_status)
+        
+        return source_statuses
         
     except Exception as e:
         logger.error(f"Error getting data sources: {e}")
         raise HTTPException(status_code=500, detail="Error retrieving data sources")
 
 @app.get("/api/automation/discoveries", response_model=List[DiscoveryItem])
-async def get_recent_discoveries(limit: int = 50, verified_only: bool = False):
+async def get_recent_discoveries(limit: int = 50, verified_only: bool = False, session: AsyncSession = Depends(get_database)):
     """Get recent discoveries from automation"""
     try:
-        # Mock data for now - replace with real achievements when automation is active
-        discoveries = [
-            DiscoveryItem(
-                id="1",
-                title="AACTA Award - Best Short Film",
-                alumni_name="Sarah Chen",
-                achievement_type="Award",
-                source="AACTA",
-                confidence=0.95,
-                timestamp=datetime.now() - timedelta(minutes=2),
-                source_url="https://aacta.org/winners",
-                verified=False
-            ),
-            DiscoveryItem(
-                id="2",
-                title="Producer - Night Terrors",
-                alumni_name="James Mitchell",
-                achievement_type="Production Credit",
-                source="TMDb",
-                confidence=0.87,
-                timestamp=datetime.now() - timedelta(minutes=15),
-                source_url="https://themoviedb.org",
-                verified=False
-            ),
-        ]
+        # Query real achievements from automation sources
+        automation_sources = ['TMDb API', 'OMDb API', 'Screen Australia', 'IF Magazine', 'AACTA Awards']
         
-        return discoveries[:limit]
+        query = select(Achievement, Alumni.name).join(
+            Alumni, Achievement.alumni_id == Alumni.id
+        ).where(
+            Achievement.source.in_(automation_sources)
+        ).order_by(Achievement.created_at.desc()).limit(limit)
+        
+        if verified_only:
+            query = query.where(Achievement.verified == True)
+        
+        result = await session.execute(query)
+        achievement_data = result.all()
+        
+        discoveries = []
+        for achievement, alumni_name in achievement_data:
+            try:
+                # Handle achievement type conversion safely
+                if hasattr(achievement.type, 'value'):
+                    achievement_type_value = achievement.type.value
+                else:
+                    achievement_type_value = str(achievement.type)
+                
+                discovery = DiscoveryItem(
+                    id=str(achievement.id),
+                    title=achievement.title,
+                    alumni_name=alumni_name,
+                    achievement_type=achievement_type_value,
+                    source=achievement.source,
+                    confidence=float(achievement.confidence_score),
+                    timestamp=achievement.created_at.isoformat(),
+                    source_url=achievement.source_url,
+                    verified=achievement.verified
+                )
+                discoveries.append(discovery)
+            except Exception as e:
+                logger.error(f"Error processing achievement {achievement.id}: {e}")
+                # Skip this achievement and continue
+        
+        return discoveries
             
     except Exception as e:
         logger.error(f"Error getting discoveries: {e}")
         raise HTTPException(status_code=500, detail="Error retrieving discoveries")
 
+# Background task function for automation discovery
+async def run_automation_background_task():
+    """Background task that runs the discovery pipeline"""
+    try:
+        logger.info("Starting automation background task")
+        
+        # Get a new database session for the background task
+        async with AsyncSessionLocal() as session:
+            # Update status to running
+            await update_automation_state(session, status="running", last_run_start=datetime.now())
+            
+            logger.info("Automation pipeline started - broadcasting notification")
+            
+            # Broadcast start notification
+            await manager.broadcast({
+                "type": "automation_started",
+                "timestamp": datetime.now().isoformat(),
+                "message": "Discovery pipeline started"
+            })
+            
+            # Run simplified discovery simulation (avoid complex nested async operations)
+            logger.info("Running discovery pipeline simulation")
+            
+            # Get active data sources
+            sources_query = select(DataSource).where(DataSource.active == True).order_by(DataSource.name)
+            sources_result = await session.execute(sources_query)
+            active_sources = sources_result.scalars().all()
+            
+            discoveries_count = 0
+            processed_count = 0
+            
+            # Process each source (simplified simulation)
+            for source in active_sources:
+                try:
+                    logger.info(f"Processing source: {source.name}")
+                    
+                    # Simulate discovery processing
+                    if source.name in ["TMDb API", "OMDb API"]:
+                        # Simulate finding a new achievement
+                        alumni_query = select(Alumni).limit(1)
+                        alumni_result = await session.execute(alumni_query)
+                        first_alumni = alumni_result.scalar_one_or_none()
+                        
+                        if first_alumni:
+                            # Create a simulated discovery achievement using raw SQL to avoid enum conflicts
+                            insert_query = """
+                                INSERT INTO achievements (alumni_id, type, title, date, description, confidence_score, verified, source, source_url)
+                                VALUES (:alumni_id, :type, :title, :date, :description, :confidence_score, :verified, :source, :source_url)
+                                RETURNING id, created_at
+                            """
+                            
+                            result = await session.execute(
+                                text(insert_query),
+                                {
+                                    "alumni_id": first_alumni.id,
+                                    "type": "Production Credit",  # Use value that matches CHECK constraint
+                                    "title": f"New Discovery from {source.name}",
+                                    "date": datetime.now().date(),
+                                    "description": f"Discovered via {source.name} automation at {datetime.now()}",
+                                    "confidence_score": 0.85,
+                                    "verified": False,
+                                    "source": source.name,
+                                    "source_url": f"https://{source.name.lower().replace(' ', '')}.com/discovery"
+                                }
+                            )
+                            
+                            new_achievement_row = result.fetchone()
+                            await session.commit()
+                            discoveries_count += 1
+                            
+                            logger.info(f"Created new achievement: New Discovery from {source.name}")
+                            
+                            # Broadcast new discovery
+                            await manager.broadcast({
+                                "type": "new_discovery",
+                                "discovery": {
+                                    "id": str(new_achievement_row.id),
+                                    "title": f"New Discovery from {source.name}",
+                                    "alumni_name": first_alumni.name,
+                                    "achievement_type": "Production Credit",
+                                    "source": source.name,
+                                    "confidence": 0.85,
+                                    "timestamp": new_achievement_row.created_at.isoformat(),
+                                    "source_url": f"https://{source.name.lower().replace(' ', '')}.com/discovery",
+                                    "verified": False
+                                }
+                            })
+                    
+                    # Update source stats
+                    source.last_checked = datetime.now()
+                    current_rate = float(source.success_rate or 0.8)
+                    source.success_rate = min(current_rate + 0.05, 1.0)
+                    
+                    processed_count += 1
+                    
+                except Exception as source_error:
+                    logger.error(f"Error processing source {source.name}: {source_error}")
+                    if source:
+                        source.last_error = str(source_error)
+                        current_rate = float(source.success_rate or 0.8)
+                        source.success_rate = max(current_rate - 0.1, 0.1)
+            
+            await session.commit()
+            
+            # Update automation state with results
+            await update_automation_state(
+                session,
+                status="stopped",
+                last_run_end=datetime.now(),
+                next_scheduled_run=datetime.now() + timedelta(hours=6),
+                run_count=processed_count
+            )
+            
+            # Broadcast completion
+            await manager.broadcast({
+                "type": "automation_completed",
+                "timestamp": datetime.now().isoformat(),
+                "result": {
+                    "discoveries_found": discoveries_count,
+                    "sources_processed": processed_count,
+                    "total_sources": len(active_sources)
+                }
+            })
+            
+            logger.info(f"Automation run completed successfully: {discoveries_count} discoveries, {processed_count} sources processed")
+            
+    except Exception as e:
+        logger.error(f"Automation background task failed: {e}")
+        
+        # Update status to error in a simple way
+        try:
+            async with AsyncSessionLocal() as error_session:
+                await update_automation_state(
+                    error_session,
+                    status="error",
+                    last_run_end=datetime.now()
+                )
+        except Exception as update_error:
+            logger.error(f"Failed to update error state: {update_error}")
+        
+        # Broadcast error
+        try:
+            await manager.broadcast({
+                "type": "automation_error",
+                "timestamp": datetime.now().isoformat(),
+                "error": str(e)
+            })
+        except Exception as broadcast_error:
+            logger.error(f"Failed to broadcast error: {broadcast_error}")
+
 @app.post("/api/automation/toggle")
-async def toggle_automation(request: AutomationToggleRequest, background_tasks: BackgroundTasks):
+async def toggle_automation(request: AutomationToggleRequest, background_tasks: BackgroundTasks, session: AsyncSession = Depends(get_database)):
     """Start or stop the automation system"""
     try:
         if request.action == "start":
+            # Update database state
+            await update_automation_state(
+                session, 
+                status="running",
+                last_run_start=datetime.now(),
+                next_scheduled_run=datetime.now() + timedelta(hours=6)
+            )
+            
+            # Start background automation task
+            background_tasks.add_task(run_automation_background_task)
+            
+            # Update in-memory state for compatibility
             automation_state["status"] = AutomationStatus.RUNNING
             
             await manager.broadcast({
@@ -569,6 +1165,14 @@ async def toggle_automation(request: AutomationToggleRequest, background_tasks: 
             return {"message": "Automation started successfully", "status": "running"}
             
         elif request.action == "stop":
+            # Update database state
+            await update_automation_state(
+                session,
+                status="stopped", 
+                last_run_end=datetime.now()
+            )
+            
+            # Update in-memory state for compatibility
             automation_state["status"] = AutomationStatus.STOPPED
             
             await manager.broadcast({
@@ -590,6 +1194,9 @@ async def toggle_automation(request: AutomationToggleRequest, background_tasks: 
 async def manual_run(request: ManualRunRequest, background_tasks: BackgroundTasks):
     """Trigger a manual collection run"""
     try:
+        # Add background task for manual discovery run
+        background_tasks.add_task(run_automation_background_task)
+        
         await manager.broadcast({
             "type": "manual_run_started",
             "sources": request.sources,

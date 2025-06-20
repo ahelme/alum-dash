@@ -47,6 +47,11 @@ class ProjectType(enum.Enum):
     DOCUMENTARY = "Documentary"
     ANIMATION = "Animation"
 
+class DataSourceType(enum.Enum):
+    API = "API"
+    RSS = "RSS"
+    WEB_SCRAPING = "Web Scraping"
+
 # SQLAlchemy Models
 class Alumni(Base):
     __tablename__ = "alumni"
@@ -54,7 +59,7 @@ class Alumni(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     graduation_year = Column(Integer, nullable=False)
-    degree_program = Column(String(50), nullable=False)  # Store as string, validate in Python
+    degree_program = Column(SQLEnum(DegreeProgram, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     email = Column(String(255))
     linkedin_url = Column(Text)
     imdb_url = Column(Text)
@@ -72,7 +77,7 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
     release_date = Column(Date)
-    type = Column(SQLEnum(ProjectType), nullable=False)
+    type = Column(SQLEnum(ProjectType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     imdb_id = Column(String(20))
     tmdb_id = Column(String(20))
     poster_url = Column(Text)
@@ -88,7 +93,7 @@ class Achievement(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     alumni_id = Column(Integer, ForeignKey("alumni.id"), nullable=False)
-    type = Column(SQLEnum(AchievementType), nullable=False)
+    type = Column(SQLEnum(AchievementType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     title = Column(String(200), nullable=False)
     date = Column(Date, nullable=False)
     description = Column(Text, nullable=False)
@@ -126,6 +131,41 @@ class ImportLog(Base):
     imported_by = Column(String(100))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True))
+
+class DataSource(Base):
+    __tablename__ = "data_sources"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    type = Column(SQLEnum(DataSourceType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
+    url = Column(Text, nullable=False)
+    active = Column(Boolean, default=True)
+    rate_limit = Column(Integer, default=60)
+    api_key_encrypted = Column(Text)
+    last_checked = Column(DateTime(timezone=True))
+    last_error = Column(Text)
+    success_rate = Column(DECIMAL(3, 2), default=1.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class ProjectStreamingPlatform(Base):
+    __tablename__ = "project_streaming_platforms"
+    
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    platform_name = Column(String(100), nullable=False, primary_key=True)
+
+class AutomationState(Base):
+    __tablename__ = "automation_state"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    status = Column(String(20), nullable=False, default="stopped")  # running, stopped, error
+    last_run_start = Column(DateTime(timezone=True))
+    last_run_end = Column(DateTime(timezone=True))
+    next_scheduled_run = Column(DateTime(timezone=True))
+    current_progress = Column(JSONB, default={})
+    error_message = Column(Text)
+    run_count = Column(Integer, default=0)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 # Dependency to get database session
 async def get_database() -> AsyncGenerator[AsyncSession, None]:
