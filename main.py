@@ -179,8 +179,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files for React frontend
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files for React frontend assets
+app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
 
 # ===== EXISTING ENDPOINTS =====
 
