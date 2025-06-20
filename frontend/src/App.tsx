@@ -1,10 +1,8 @@
-import React from 'react'
 import { AlumniDataTable } from '@/components/alumni-data-table'
-import { ImportCSV } from '@/components/import-csv'
-import { AddAlumni } from '@/components/add-alumni'
+import { AddAlumni } from '@/add-alumni'
 import { AutomationDashboard } from '@/components/AutomationDashboard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { GraduationCap, Users, Plus, Upload, BarChart3, Bot } from 'lucide-react'
+import { GraduationCap, Users, Plus, BarChart3, Bot } from 'lucide-react'
 
 function App() {
   return (
@@ -27,7 +25,7 @@ function App() {
 
         {/* Navigation Tabs */}
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4 mb-8">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -39,10 +37,6 @@ function App() {
             <TabsTrigger value="add-alumni" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Alumni</span>
-            </TabsTrigger>
-            <TabsTrigger value="import-csv" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              <span className="hidden sm:inline">Import CSV</span>
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -62,9 +56,6 @@ function App() {
             <AddAlumni />
           </TabsContent>
 
-          <TabsContent value="import-csv" className="space-y-6">
-            <ImportCSV />
-          </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
             <div className="text-center py-12">

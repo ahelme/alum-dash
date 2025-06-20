@@ -6,14 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Activity, 
-  AlertCircle, 
   CheckCircle2, 
   Clock,
   Database,
   Eye,
   Film,
   Globe,
-  Loader2,
   Play,
   Pause,
   RefreshCw,
@@ -21,12 +19,9 @@ import {
   Star,
   Trophy,
   Users,
-  Zap,
   TrendingUp,
-  Calendar,
   ExternalLink,
   Bell,
-  Settings,
   Bot
 } from 'lucide-react';
 
@@ -92,7 +87,7 @@ const StatCard: React.FC<{
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   trend?: string;
-  color?: string;
+  color?: "blue" | "green" | "purple" | "orange";
   isLoading?: boolean;
 }> = ({ title, value, description, icon: Icon, trend, color = "blue", isLoading = false }) => {
   if (isLoading) {

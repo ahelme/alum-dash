@@ -6,8 +6,8 @@ FROM node:18-alpine AS frontend-builder
 WORKDIR /frontend
 
 # Copy frontend package files
-COPY frontend/package*.json ./
-RUN npm ci --only=production
+COPY frontend/package.json ./
+RUN npm install --omit=dev
 
 # Copy frontend source
 COPY frontend/ ./

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import HTMLResponse, Response, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -178,6 +179,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files for React frontend
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # ===== EXISTING ENDPOINTS =====
 
 # Health check endpoint
@@ -191,15 +195,15 @@ async def health_check():
     else:
         raise HTTPException(status_code=503, detail="Database connection failed")
 
-# Serve HTML interface
+# Serve React frontend
 @app.get("/", response_class=HTMLResponse)
-async def home():
-    """Serve the main web interface"""
+async def serve_frontend():
+    """Serve the React frontend index.html"""
     try:
-        with open("index.html", "r") as f:
+        with open("static/index.html", "r") as f:
             return f.read()
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Web interface not found")
+        raise HTTPException(status_code=404, detail="Frontend not found - ensure Docker build completed successfully")
 
 # Alumni endpoints (EXISTING - keeping as is)
 @app.get("/api/alumni", response_model=List[AlumniResponse])
@@ -613,6 +617,19 @@ async def get_projects():
 async def get_data_sources_legacy():
     """Legacy endpoint - use /api/automation/sources instead"""
     return []
+
+# Catch-all route for React Router (must be last)
+@app.get("/{full_path:path}", response_class=HTMLResponse)
+async def serve_react_app(full_path: str):
+    """
+    Catch-all route to serve React app for client-side routing.
+    This handles all routes not matched by API endpoints above.
+    """
+    try:
+        with open("static/index.html", "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Frontend not found - ensure Docker build completed successfully")
 
 if __name__ == "__main__":
     print("\n" + "="*60)

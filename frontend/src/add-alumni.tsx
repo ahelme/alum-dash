@@ -10,9 +10,7 @@ import {
   Loader2,
   User,
   Mail,
-  Globe,
-  Calendar,
-  GraduationCap
+  Globe
 } from 'lucide-react';
 
 interface AlumniFormData {
