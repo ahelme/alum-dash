@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import HTMLResponse, Response, JSONResponse
-from fastapi.staticfiles import StaticFiles
+# Static files removed - using React dev server directly
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
@@ -502,8 +502,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files for React frontend assets  
-app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+# Static file serving removed - React dev server handles frontend assets
 
 # ===== EXISTING ENDPOINTS =====
 
@@ -519,14 +518,10 @@ async def health_check():
         raise HTTPException(status_code=503, detail="Database connection failed")
 
 # Serve React frontend
-@app.get("/", response_class=HTMLResponse)
-async def serve_frontend():
-    """Serve the React frontend index.html"""
-    try:
-        with open("static/index.html", "r") as f:
-            return f.read()
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Frontend not found - ensure Docker build completed successfully")
+@app.get("/")
+async def root():
+    """API root - React frontend served separately on port 5173"""
+    return {"message": "AlumDash API is running", "frontend_url": "http://localhost:5173", "docs": "http://localhost:8000/docs"}
 
 # Alumni endpoints (EXISTING - keeping as is)
 @app.get("/api/alumni", response_model=List[AlumniResponse])
@@ -1226,21 +1221,7 @@ async def get_data_sources_legacy():
     return []
 
 # Catch-all route for React Router (must be last)
-@app.get("/{full_path:path}", response_class=HTMLResponse)
-async def serve_react_app(full_path: str):
-    """
-    Catch-all route to serve React app for client-side routing.
-    This handles all routes not matched by API endpoints above.
-    """
-    # Don't catch API routes
-    if full_path.startswith("api/"):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
-    
-    try:
-        with open("static/index.html", "r") as f:
-            return f.read()
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Frontend not found - ensure Docker build completed successfully")
+# Catch-all route removed - React dev server handles frontend routing
 
 if __name__ == "__main__":
     print("\n" + "="*60)

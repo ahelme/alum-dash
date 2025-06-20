@@ -20,20 +20,20 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # FastAPI Backend
-  web:
+  # FastAPI Backend (API only)
+  api:
     build: 
       context: .
+      dockerfile: Dockerfile.backend
       platforms:
         - linux/amd64
         - linux/arm64
-    container_name: alumdash-web
+    container_name: alumdash-api
     environment:
       DATABASE_URL: postgresql+asyncpg://alumdash_user:secure_alumdash_2025@db:5432/alumdash
       ENV: development
     volumes:
       - .:/app
-      - /app/node_modules
     ports:
       - "8000:8000"
     depends_on:
@@ -41,6 +41,25 @@ services:
         condition: service_healthy
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # React Frontend Development Server
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    container_name: alumdash-frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    command: npm run dev -- --host 0.0.0.0
 
   # Redis for caching and background tasks (optional)
   redis:

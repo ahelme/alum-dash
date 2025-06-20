@@ -1,0 +1,28 @@
+# Frontend development Dockerfile for React dev server
+FROM node:18-alpine
+
+# Install necessary build tools for ARM64 compatibility
+RUN apk add --no-cache python3 make g++ libc6-compat
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+
+# Clear cache and install dependencies
+RUN rm -f package-lock.json && \
+    npm cache clean --force && \
+    npm install
+
+# Copy source files
+COPY . .
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Health check for dev server
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:5173 || exit 1
+
+# Start development server with host binding for Docker
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

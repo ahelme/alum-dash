@@ -23,7 +23,10 @@ RUN rm -rf node_modules package-lock.json
 # Reinstall dependencies in container environment (include dev deps for build)
 RUN npm install
 
-# Build frontend
+# Clear Vite cache before building to ensure fresh assets
+RUN rm -rf node_modules/.vite dist
+
+# Build frontend with fresh cache
 RUN npm run build
 
 # Python backend stage
