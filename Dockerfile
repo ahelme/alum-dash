@@ -1,5 +1,22 @@
-# Use Python 3.11 slim image for better performance and security
-FROM python:3.11-slim
+# Multi-stage build for AlumDash with Node.js frontend and Python backend
+
+# Frontend build stage
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+# Copy frontend package files
+COPY frontend/package*.json ./
+RUN npm ci --only=production
+
+# Copy frontend source
+COPY frontend/ ./
+
+# Build frontend
+RUN npm run build
+
+# Python backend stage
+FROM python:3.11-slim AS backend
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -23,8 +40,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
-COPY . .
+# Copy Python backend files
+COPY *.py ./
+COPY database/ ./database/
+COPY services/ ./services/
+
+# Copy built frontend from frontend-builder stage
+COPY --from=frontend-builder /frontend/dist ./static/
 
 # Create a non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
@@ -36,7 +58,7 @@ EXPOSE 8000
 
 # Health check to ensure the app is running
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/alumni || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Command to run the application
 CMD ["python", "main.py"]
