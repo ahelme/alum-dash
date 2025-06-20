@@ -1,0 +1,18 @@
+# Docker Compose override for ARM64 systems (Apple Silicon Macs)
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.arm64.yml up --build
+
+services:
+  # FastAPI Backend with ARM64 optimizations
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    
+  # Use ARM64 optimized PostgreSQL
+  db:
+    platform: linux/arm64
+    
+  # Use ARM64 optimized Redis
+  redis:
+    platform: linux/arm64

@@ -1,67 +1,57 @@
 services:
-  # Main web application service
-  alumni-tracker:
-    build: 
-      context: .  # Build from current directory using Dockerfile
-      dockerfile: Dockerfile
-    container_name: alumdash-app
-    ports:
-      - "8000:8000"  # Map host port 8000 to container port 8000
-    environment:
-      # Environment variables for the application
-      - PYTHONPATH=/app
-      - ENV=development
-      - DATABASE_URL=postgresql+asyncpg://alumdash_user:secure_alumdash_2025@database:5432/alumdash
-    depends_on:
-      database:
-        condition: service_healthy
-    volumes:
-      # Mount current directory to /app for development (hot reload)
-      - .:/app
-      # Create a named volume for any persistent data
-      - alumdash_data:/app/data
-    restart: unless-stopped  # Restart container unless explicitly stopped
-    healthcheck:
-      # Monitor application health
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/alumni"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - alumdash-network
-
-  # PostgreSQL database
-  database:
+  # PostgreSQL Database
+  db:
     image: postgres:15-alpine
     container_name: alumdash-db
     environment:
       POSTGRES_DB: alumdash
       POSTGRES_USER: alumdash_user
       POSTGRES_PASSWORD: secure_alumdash_2025
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data/pgdata
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
-    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U alumdash_user -d alumdash"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 5
-    networks:
-      - alumdash-network
+    restart: unless-stopped
 
-# Named volumes for persistent data
+  # FastAPI Backend
+  web:
+    build: 
+      context: .
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    container_name: alumdash-web
+    environment:
+      DATABASE_URL: postgresql+asyncpg://alumdash_user:secure_alumdash_2025@db:5432/alumdash
+      ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Redis for caching and background tasks (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: alumdash-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
 volumes:
-  alumdash_data:
-    driver: local
   postgres_data:
-    driver: local
-
-# Custom network for service communication
-networks:
-  alumdash-network:
-    driver: bridge
+  redis_data:
