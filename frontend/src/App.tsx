@@ -28,15 +28,6 @@ const FeaturedStats = () => {
   return (
     <section className="w-full bg-muted/30 py-12 mb-8">
       <div className="container px-4 md:px-6">
-        <div className="mx-auto max-w-2xl text-center mb-8">
-          <h2 className="text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-            AlumDash Impact
-          </h2>
-          <p className="mt-3 text-xl leading-relaxed text-muted-foreground">
-            Tracking achievements and building success stories for our alumni community.
-          </p>
-        </div>
-
         <div className="grid grid-cols-1 gap-8 text-center md:grid-cols-3">
           {stats.map((stat, index) => (
             <div
