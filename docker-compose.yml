@@ -1,0 +1,58 @@
+services:
+  # Main web application service
+  alumni-tracker:
+    build: 
+      context: .  # Build from current directory using Dockerfile
+      dockerfile: Dockerfile
+    container_name: vca-alumni-tracker
+    ports:
+      - "8000:8000"  # Map host port 8000 to container port 8000
+    environment:
+      # Environment variables for the application
+      - PYTHONPATH=/app
+      - ENV=development
+    volumes:
+      # Mount current directory to /app for development (hot reload)
+      - .:/app
+      # Create a named volume for any persistent data
+      - alumni_data:/app/data
+    restart: unless-stopped  # Restart container unless explicitly stopped
+    healthcheck:
+      # Monitor application health
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/alumni"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - alumni-network
+
+  # Optional: PostgreSQL database for production use
+  # Uncomment and configure when ready to move from mock data
+  # database:
+  #   image: postgres:15-alpine
+  #   container_name: vca-alumni-db
+  #   environment:
+  #     POSTGRES_DB: alumni_tracker
+  #     POSTGRES_USER: alumni_user
+  #     POSTGRES_PASSWORD: secure_password_here
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+  #   networks:
+  #     - alumni-network
+
+# Named volumes for persistent data
+volumes:
+  alumni_data:
+    driver: local
+  # postgres_data:  # Uncomment when using PostgreSQL
+  #   driver: local
+
+# Custom network for service communication
+networks:
+  alumni-network:
+    driver: bridge

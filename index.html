@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VCA Alumni Achievement Tracking System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background-color: #003366;
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .nav button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav button:hover, .nav button.active {
+            background-color: rgba(255,255,255,0.2);
+        }
+        
+        .content {
+            padding: 2rem 0;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            color: #003366;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: #003366;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #003366;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+        
+        button.btn {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button.btn:hover {
+            background-color: #0052a3;
+        }
+        
+        .achievement-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .achievement-badge.award {
+            background-color: #ffd700;
+            color: #333;
+        }
+        
+        .achievement-badge.festival {
+            background-color: #ff6b6b;
+            color: white;
+        }
+        
+        .achievement-badge.production {
+            background-color: #4ecdc4;
+            color: white;
+        }
+        
+        .achievement-badge.review {
+            background-color: #95e1d3;
+            color: #333;
+        }
+        
+        .achievement-badge.industry {
+            background-color: #a8e6cf;
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .data-source-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .data-source-status.active {
+            background-color: #4caf50;
+        }
+        
+        .data-source-status.inactive {
+            background-color: #f44336;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .confidence-score {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .confidence-high {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .confidence-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .confidence-low {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .verified {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .unverified {
+            color: #dc3545;
+        }
+        
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        ul li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        ul li:last-child {
+            border-bottom: none;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav {
+                flex-direction: column;
+            }
+            
+            .nav button {
+                width: 100%;
+            }
+            
+            table {
+                font-size: 0.875rem;
+            }
+            
+            th, td {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>VCA Alumni Achievement Tracking System</h1>
+            <p>University of Melbourne - Faculty of Fine Arts and Music</p>
+            <nav class="nav">
+                <button onclick="showSection('dashboard')" class="active">Dashboard</button>
+                <button onclick="showSection('alumni')">Alumni</button>
+                <button onclick="showSection('achievements')">Achievements</button>
+                <button onclick="showSection('projects')">Projects</button>
+                <button onclick="showSection('data-sources')">Data Sources</button>
+                <button onclick="showSection('add-alumni')">Add Alumni</button>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="content">
+        <div class="container">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <h2>Dashboard Overview</h2>
+                <div class="dashboard-grid" id="dashboardStats">
+                    <div class="loading">Loading dashboard...</div>
+                </div>
+                
+                <div class="card">
+                    <h3>Recent Achievements</h3>
+                    <div id="recentAchievements">
+                        <div class="loading">Loading achievements...</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Alumni Section -->
+            <section id="alumni" class="section">
+                <h2>Alumni Directory</h2>
+                <div id="alumniTable">
+                    <div class="loading">Loading alumni...</div>
+                </div>
+            </section>
+            
+            <!-- Achievements Section -->
+            <section id="achievements" class="section">
+                <h2>All Achievements</h2>
+                <div id="achievementsTable">
+                    <div class="loading">Loading achievements...</div>
+                </div>
+            </section>
+            
+            <!-- Projects Section -->
+            <section id="projects" class="section">
+                <h2>Film & TV Projects</h2>
+                <div id="projectsTable">
+                    <div class="loading">Loading projects...</div>
+                </div>
+            </section>
+            
+            <!-- Data Sources Section -->
+            <section id="data-sources" class="section">
+                <h2>Data Sources</h2>
+                <div id="dataSourcesTable">
+                    <div class="loading">Loading data sources...</div>
+                </div>
+            </section>
+            
+            <!-- Add Alumni Section -->
+            <section id="add-alumni" class="section">
+                <h2>Add New Alumni</h2>
+                <div class="card">
+                    <div id="formMessage"></div>
+                    <form id="addAlumniForm">
+                        <div class="form-group">
+                            <label for="name">Full Name *</label>
+                            <input type="text" id="name" name="name" required minlength="2" maxlength="100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="graduation_year">Graduation Year *</label>
+                            <input type="number" id="graduation_year" name="graduation_year" min="1970" max="2025" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="degree_program">Degree Program *</label>
+                            <select id="degree_program" name="degree_program" required>
+                                <option value="">Select a program</option>
+                                <option value="Film Production">Film Production</option>
+                                <option value="Screenwriting">Screenwriting</option>
+                                <option value="Animation">Animation</option>
+                                <option value="Documentary">Documentary</option>
+                                <option value="Television">Television</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="linkedin_url">LinkedIn URL</label>
+                            <input type="url" id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/username">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="imdb_url">IMDb URL</label>
+                            <input type="url" id="imdb_url" name="imdb_url" placeholder="https://www.imdb.com/name/nm1234567">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="website">Personal Website</label>
+                            <input type="url" id="website" name="website" placeholder="https://example.com">
+                        </div>
+                        
+                        <button type="submit" class="btn">Add Alumni</button>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </main>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            
+            document.querySelectorAll('.nav button').forEach(button => {
+                button.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Load section data
+            switch(sectionId) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'alumni':
+                    loadAlumni();
+                    break;
+                case 'achievements':
+                    loadAchievements();
+                    break;
+                case 'projects':
+                    loadProjects();
+                    break;
+                case 'data-sources':
+                    loadDataSources();
+                    break;
+            }
+        }
+        
+        // Load Dashboard
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/dashboard/stats`);
+                const stats = await response.json();
+                
+                const dashboardHtml = `
+                    <div class="card">
+                        <h3>Total Alumni</h3>
+                        <div class="stat-value">${stats.total_alumni}</div>
+                    </div>
+                    <div class="card">
+                        <h3>Total Achievements</h3>
+                        <div class="stat-value">${stats.total_achievements}</div>
+                    </div>
+                    <div class="card">
+                        <h3>Top Achievers</h3>
+                        <ul>
+                            ${stats.top_achievers.map(a => `
+                                <li>${a.name} (${a.graduation_year}) - ${a.achievement_count} achievements</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+                
+                document.getElementById('dashboardStats').innerHTML = dashboardHtml;
+                
+                const recentHtml = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Achievement</th>
+                                <th>Alumni</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${stats.recent_achievements.map(a => `
+                                <tr>
+                                    <td>${a.title}</td>
+                                    <td>${a.alumni_name}</td>
+                                    <td>${new Date(a.date).toLocaleDateString()}</td>
+                                    <td><span class="achievement-badge ${getAchievementClass(a.type)}">${a.type}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('recentAchievements').innerHTML = recentHtml;
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        // Load Alumni
+        async function loadAlumni() {
+            try {
+                const response = await fetch(`${API_BASE}/alumni`);
+                const alumni = await response.json();
+                
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Graduation Year</th>
+                                <th>Degree Program</th>
+                                <th>Email</th>
+                                <th>Links</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${alumni.map(a => `
+                                <tr>
+                                    <td>${a.name}</td>
+                                    <td>${a.graduation_year}</td>
+                                    <td>${a.degree_program}</td>
+                                    <td>${a.email || 'N/A'}</td>
+                                    <td>
+                                        ${a.linkedin_url ? `<a href="${a.linkedin_url}" target="_blank">LinkedIn</a>` : ''}
+                                        ${a.imdb_url ? `<a href="${a.imdb_url}" target="_blank">IMDb</a>` : ''}
+                                        ${a.website ? `<a href="${a.website}" target="_blank">Website</a>` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('alumniTable').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading alumni:', error);
+            }
+        }
+        
+        // Load Achievements
+        async function loadAchievements() {
+            try {
+                const response = await fetch(`${API_BASE}/achievements`);
+                const achievements = await response.json();
+                
+                const alumniResponse = await fetch(`${API_BASE}/alumni`);
+                const alumni = await alumniResponse.json();
+                
+                const alumniMap = {};
+                alumni.forEach(a => alumniMap[a.id] = a.name);
+                
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Alumni</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Confidence</th>
+                                <th>Verified</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${achievements.map(a => `
+                                <tr>
+                                    <td>${a.title}</td>
+                                    <td>${alumniMap[a.alumni_id]}</td>
+                                    <td><span class="achievement-badge ${getAchievementClass(a.type)}">${a.type}</span></td>
+                                    <td>${new Date(a.date).toLocaleDateString()}</td>
+                                    <td><span class="confidence-score ${getConfidenceClass(a.confidence_score)}">${(a.confidence_score * 100).toFixed(0)}%</span></td>
+                                    <td class="${a.verified ? 'verified' : 'unverified'}">${a.verified ? '✓' : '✗'}</td>
+                                    <td>${a.source}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('achievementsTable').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading achievements:', error);
+            }
+        }
+        
+        // Load Projects
+        async function loadProjects() {
+            try {
+                const response = await fetch(`${API_BASE}/projects`);
+                const projects = await response.json();
+                
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Release Date</th>
+                                <th>Runtime</th>
+                                <th>Streaming</th>
+                                <th>Links</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${projects.map(p => `
+                                <tr>
+                                    <td>${p.title}</td>
+                                    <td>${p.type}</td>
+                                    <td>${p.release_date ? new Date(p.release_date).toLocaleDateString() : 'TBA'}</td>
+                                    <td>${p.runtime_minutes ? p.runtime_minutes + ' min' : 'N/A'}</td>
+                                    <td>${p.streaming_platforms.join(', ') || 'N/A'}</td>
+                                    <td>
+                                        ${p.imdb_id ? `<a href="https://www.imdb.com/title/${p.imdb_id}" target="_blank">IMDb</a>` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('projectsTable').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading projects:', error);
+            }
+        }
+        
+        // Load Data Sources
+        async function loadDataSources() {
+            try {
+                const response = await fetch(`${API_BASE}/data-sources`);
+                const sources = await response.json();
+                
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Rate Limit</th>
+                                <th>Last Checked</th>
+                                <th>URL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sources.map(s => `
+                                <tr>
+                                    <td><span class="data-source-status ${s.active ? 'active' : 'inactive'}"></span></td>
+                                    <td>${s.name}</td>
+                                    <td>${s.type}</td>
+                                    <td>${s.rate_limit} req/hour</td>
+                                    <td>${s.last_checked ? new Date(s.last_checked).toLocaleString() : 'Never'}</td>
+                                    <td><a href="${s.url}" target="_blank">${s.url}</a></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('dataSourcesTable').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading data sources:', error);
+            }
+        }
+        
+        // Helper function for achievement badges
+        function getAchievementClass(type) {
+            if (type.includes('Award')) return 'award';
+            if (type.includes('Festival')) return 'festival';
+            if (type.includes('Production')) return 'production';
+            if (type.includes('Review')) return 'review';
+            if (type.includes('Industry')) return 'industry';
+            return '';
+        }
+        
+        // Helper function for confidence scores
+        function getConfidenceClass(score) {
+            if (score >= 0.9) return 'confidence-high';
+            if (score >= 0.7) return 'confidence-medium';
+            return 'confidence-low';
+        }
+        
+        // Handle form submission
+        document.getElementById('addAlumniForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            // Clean up empty URLs
+            ['linkedin_url', 'imdb_url', 'website'].forEach(field => {
+                if (!data[field]) delete data[field];
+            });
+            
+            try {
+                const response = await fetch(`${API_BASE}/alumni`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: 0, // Will be assigned by server
+                        name: data.name,
+                        graduation_year: parseInt(data.graduation_year),
+                        degree_program: data.degree_program,
+                        email: data.email || null,
+                        linkedin_url: data.linkedin_url,
+                        imdb_url: data.imdb_url,
+                        website: data.website,
+                        privacy_settings: {
+                            public_profile: true,
+                            show_email: false,
+                            allow_notifications: true
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('formMessage').innerHTML = 
+                        '<div class="alert success">Alumni added successfully!</div>';
+                    e.target.reset();
+                    setTimeout(() => {
+                        showSection('alumni');
+                    }, 2000);
+                } else {
+                    const error = await response.json();
+                    document.getElementById('formMessage').innerHTML = 
+                        `<div class="alert error">Error: ${error.detail || 'Failed to add alumni'}</div>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('formMessage').innerHTML = 
+                    '<div class="alert error">Error adding alumni. Please try again.</div>';
+            }
+        });
+        
+        // Load dashboard on page load
+        loadDashboard();
+    </script>
+</body>
+</html>
