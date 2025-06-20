@@ -1,6 +1,7 @@
 import { AlumniDataTable } from '@/components/alumni-data-table'
 import { AddAlumni } from '@/add-alumni'
 import { AutomationDashboard } from '@/components/AutomationDashboard'
+import { ImportHistory } from '@/components/import-history'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GraduationCap, Users, Plus, BarChart3, Bot } from 'lucide-react'
 
@@ -58,10 +59,7 @@ function App() {
 
 
           <TabsContent value="history" className="space-y-6">
-            <div className="text-center py-12">
-              <h3 className="text-lg font-semibold">Import History</h3>
-              <p className="text-muted-foreground">Coming soon...</p>
-            </div>
+            <ImportHistory />
           </TabsContent>
         </Tabs>
       </div>
