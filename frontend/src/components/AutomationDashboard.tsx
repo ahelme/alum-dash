@@ -97,21 +97,21 @@ const StatCard: React.FC<{
   }
 
   return (
-    <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+    <Card className="relative overflow-hidden transition-all hover:shadow-md border border-gray-200">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold text-foreground">{value}</div>
         <p className="text-xs text-muted-foreground mt-1">
           {description}
         </p>
         {trend && (
           <div className="flex items-center mt-2 text-xs">
-            <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-            <span className="text-green-600 font-medium">{trend}</span>
+            <TrendingUp className="h-3 w-3 text-gray-600 mr-1" />
+            <span className="text-gray-600 font-medium">{trend}</span>
             <span className="text-muted-foreground ml-1">vs last period</span>
           </div>
         )}
@@ -138,11 +138,11 @@ const DataSourceCard: React.FC<{
   const Icon = getSourceIcon(source.name);
 
   return (
-    <Card className={`transition-all hover:shadow-md ${source.active ? 'border-green-200 bg-green-50/50' : ''}`}>
+    <Card className={`transition-all hover:shadow-md border ${source.active ? 'border-gray-300 bg-gray-50/50' : 'border-gray-200'}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className={`p-2 rounded-lg ${source.active ? 'bg-green-100 text-green-700' : 'bg-muted'}`}>
+            <div className={`p-2 rounded-lg ${source.active ? 'bg-gray-100 text-gray-700' : 'bg-muted'}`}>
               <Icon className="h-4 w-4" />
             </div>
             <div>
@@ -152,7 +152,7 @@ const DataSourceCard: React.FC<{
               </CardDescription>
             </div>
           </div>
-          <div className={`w-3 h-3 rounded-full ${source.active ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+          <div className={`w-3 h-3 rounded-full ${source.active ? 'bg-gray-500 animate-pulse' : 'bg-gray-300'}`} />
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -162,7 +162,7 @@ const DataSourceCard: React.FC<{
             <div className="flex items-center space-x-2">
               <div className="flex-1 bg-muted rounded-full h-2">
                 <div 
-                  className="bg-green-500 h-2 rounded-full transition-all"
+                  className="bg-gray-600 h-2 rounded-full transition-all"
                   style={{ width: `${source.success_rate}%` }}
                 />
               </div>
@@ -209,16 +209,16 @@ const RecentDiscovery: React.FC<{
   };
 
   const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return 'bg-green-50 text-green-700 border-green-200';
-    if (score >= 0.6) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-    return 'bg-red-50 text-red-700 border-red-200';
+    if (score >= 0.8) return 'bg-gray-100 text-gray-800 border-gray-300';
+    if (score >= 0.6) return 'bg-gray-50 text-gray-700 border-gray-200';
+    return 'bg-gray-50 text-gray-600 border-gray-200';
   };
 
   const Icon = getAchievementIcon(discovery.achievement_type);
 
   return (
-    <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-      <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+    <div className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="p-2 rounded-lg bg-gray-50 text-gray-600">
         <Icon className="h-4 w-4" />
       </div>
       <div className="flex-1 min-w-0">
@@ -356,11 +356,11 @@ export const AutomationDashboard: React.FC = () => {
             <div className="flex items-center space-x-2">
               <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
                 connectionStatus === 'Connected' 
-                  ? 'bg-green-50 text-green-700' 
-                  : 'bg-red-50 text-red-700'
+                  ? 'bg-gray-100 text-gray-700' 
+                  : 'bg-gray-100 text-gray-600'
               }`}>
                 <div className={`w-2 h-2 rounded-full ${
-                  connectionStatus === 'Connected' ? 'bg-green-500' : 'bg-red-500'
+                  connectionStatus === 'Connected' ? 'bg-gray-600' : 'bg-gray-400'
                 }`} />
                 <span>Live Updates {connectionStatus}</span>
               </div>
@@ -415,7 +415,7 @@ export const AutomationDashboard: React.FC = () => {
                 <CardTitle className="flex items-center justify-between">
                   <span>System Status</span>
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${isAutomationRunning ? 'bg-green-500' : 'bg-gray-400'}`} />
+                    <div className={`w-2 h-2 rounded-full ${isAutomationRunning ? 'bg-gray-600' : 'bg-gray-400'}`} />
                     <span className="text-sm text-muted-foreground">
                       {isAutomationRunning ? 'Running' : 'Stopped'}
                     </span>
